@@ -14,7 +14,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws IOException {
         stg = primaryStage; // Save the stage
-        primaryStage.setResizable(false);
+        //primaryStage.setResizable(false);
         primaryStage.setTitle("Dorm Management System");
 
         // Load the FXML file for the login view

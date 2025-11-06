@@ -96,6 +96,8 @@ public class LoginController {
             stage.getScene().setRoot(root);
             stage.setTitle("Tenant Dashboard");
 
+
+
         } else if (user instanceof Admin) {
             // TODO: Build this
             // main.changeScene("admin-dashboard.fxml");
