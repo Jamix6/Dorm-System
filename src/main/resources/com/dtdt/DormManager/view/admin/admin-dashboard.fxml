@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.dtdt.DormManager.controller.admin.AdminDashboardController"
+            prefHeight="720.0" prefWidth="1280.0" style="-fx-background-color: #F4F7FC;">
+    
+    <!-- Top Bar -->
+    <top>
+        <HBox alignment="CENTER_LEFT" prefHeight="50.0" style="-fx-background-color: #1A1A1A;">
+            <padding>
+                <Insets left="20.0" right="20.0"/>
+            </padding>
+            <Text fill="WHITE" text="Admin Dashboard">
+                <font>
+                    <Font name="System Bold" size="16.0"/>
+                </font>
+            </Text>
+            <Pane HBox.hgrow="ALWAYS"/>
+            <HBox spacing="20.0" alignment="CENTER_RIGHT">
+                <Label fx:id="adminNameLabel" text="Admin Name" textFill="WHITE"/>
+                <Hyperlink onAction="#onLogoutClick" text="Logout" style="-fx-text-fill: white;"/>
+            </HBox>
+        </HBox>
+    </top>
+
+    <!-- Left Sidebar Navigation -->
+    <left>
+        <VBox prefWidth="250" style="-fx-background-color: white; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 0);">
+            <VBox spacing="10" style="-fx-padding: 20;">
+        <Button fx:id="statsButton" text="Statistics" onAction="#onStatsClick" 
+            style="-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;" maxWidth="Infinity"/>
+        <Button fx:id="buildingsButton" text="Buildings" onAction="#onBuildingsClick"
+            style="-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;" maxWidth="Infinity"/>
+        <Button fx:id="roomsButton" text="Rooms" onAction="#onRoomsClick"
+            style="-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;" maxWidth="Infinity"/>
+        <Button fx:id="residentsButton" text="Residents" onAction="#onResidentsClick"
+            style="-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;" maxWidth="Infinity"/>
+        <Button fx:id="maintenanceButton" text="Maintenance" onAction="#onMaintenanceClick"
+            style="-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;" maxWidth="Infinity"/>
+            </VBox>
+        </VBox>
+    </left>
+
+    <!-- Main Content Area -->
+    <center>
+        <StackPane fx:id="contentArea">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20"/>
+            </padding>
+        </StackPane>
+    </center>
+
+</BorderPane>

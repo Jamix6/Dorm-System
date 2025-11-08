@@ -19,6 +19,7 @@ import java.io.IOException;
 
 // === Model Imports ===
 import com.dtdt.DormManager.model.Admin;
+import com.dtdt.DormManager.controller.admin.AdminDashboardController;
 import com.dtdt.DormManager.model.Owner;
 import com.dtdt.DormManager.model.Tenant;
 import com.dtdt.DormManager.model.User;
@@ -68,14 +69,28 @@ public class LoginController {
 
         // === 1. DUMMY AUTHENTICATION ===
         // TODO: Replace this with real database authentication
-        // We'll create a fake tenant for demonstration
-        User user = new Tenant(
-                studentIdField.getText(),       // "12345"
-                emailFieldLogin.getText(),      // "tenant@test.com"
-                passwordFieldLogin.getText(),   // "password"
-                "Tenant Name",                  // Full Name
-                2                               // Current Year
-        );
+        // Simple credential check to demonstrate role-based navigation.
+        // If the credentials match the built-in admin account, create an Admin.
+        // Otherwise we create a Tenant for demonstration (existing behavior).
+        User user;
+        String idInput = studentIdField.getText() == null ? "" : studentIdField.getText().trim();
+        String emailInput = emailFieldLogin.getText() == null ? "" : emailFieldLogin.getText().trim();
+        String pwInput = passwordFieldLogin.getText() == null ? "" : passwordFieldLogin.getText();
+
+        // Hard-coded admin credential (change as needed)
+        if ((idInput.equalsIgnoreCase("admin") || emailInput.equalsIgnoreCase("admin@dorm.local"))
+                && pwInput.equals("adminpass")) {
+            user = new Admin("admin", "admin@dorm.local", "adminpass", "System Admin", "Manager");
+        } else {
+            // Default to tenant (existing demo behavior)
+            user = new Tenant(
+                    idInput,                    // student id
+                    emailInput,                 // email
+                    pwInput,                    // password
+                    "Tenant Name",             // Full Name (demo)
+                    2                           // Current Year (demo)
+            );
+        }
         // --- End of Dummy Auth ---
 
 
@@ -99,8 +114,18 @@ public class LoginController {
 
 
         } else if (user instanceof Admin) {
-            // TODO: Build this
-            // main.changeScene("admin-dashboard.fxml");
+                // Load the admin dashboard
+                FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/admin/admin-dashboard.fxml"));
+                Parent root = loader.load();
+
+                // Get the controller and pass the admin data
+                AdminDashboardController controller = loader.getController();
+                controller.initData((Admin) user);
+
+                // Get the current stage and set the scene
+                Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+                stage.getScene().setRoot(root);
+                stage.setTitle("Admin Dashboard");
         } else if (user instanceof Owner) {
             // TODO: Build this
             // main.changeScene("owner-dashboard.fxml");

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+
+<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.dtdt.DormManager.controller.admin.RoomsViewController"
+      spacing="20.0" style="-fx-background-color: transparent;">
+
+    <!-- Header with Search and Add -->
+    <HBox spacing="20" alignment="CENTER_LEFT">
+        <VBox>
+            <Text style="-fx-font-size: 24; -fx-font-weight: bold;" text="Rooms"/>
+            <Text style="-fx-fill: #666666;" text="View and manage all rooms"/>
+        </VBox>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <TextField promptText="Search rooms..." prefWidth="300"
+                  style="-fx-background-color: white; -fx-background-radius: 20; -fx-padding: 8 16;"/>
+        <Button text="Add Room" 
+                style="-fx-background-color: #1A1A1A; -fx-text-fill: white; -fx-background-radius: 20; -fx-padding: 8 16;"/>
+    </HBox>
+
+    <!-- Room Grid Container -->
+    <VBox style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 20;" VBox.vgrow="ALWAYS">
+        <!-- Filter Bar -->
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <ComboBox promptText="Building" prefWidth="120"/>
+            <ComboBox promptText="Floor" prefWidth="120"/>
+            <ComboBox promptText="Type" prefWidth="120"/>
+            <ComboBox promptText="Status" prefWidth="120"/>
+            <Pane HBox.hgrow="ALWAYS"/>
+            <ToggleButton text="Grid View" style="-fx-background-color: #1A1A1A; -fx-text-fill: white;"/>
+            <ToggleButton text="List View" style="-fx-background-color: transparent; -fx-border-color: #1A1A1A;"/>
+        </HBox>
+
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">
+            <!-- Grid of Room Cards -->
+            <FlowPane fx:id="roomsContainer" hgap="20" vgap="20" style="-fx-padding: 20;">
+                <!-- Example Room Card -->
+                <VBox styleClass="room-card" style="-fx-background-color: white; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 0); -fx-background-radius: 10; -fx-padding: 15; -fx-pref-width: 280;">
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label text="Room 101" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+                        <Pane HBox.hgrow="ALWAYS"/>
+                        <Label text="Available" style="-fx-background-color: #E8F5E9; -fx-text-fill: #2E7D32; -fx-padding: 4 8; -fx-background-radius: 4;"/>
+                    </HBox>
+                    <Separator style="-fx-padding: 10 0;"/>
+                    <GridPane vgap="8" hgap="10">
+                        <Label text="Building:" GridPane.columnIndex="0" GridPane.rowIndex="0" style="-fx-text-fill: #666;"/>
+                        <Label text="Building A" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                        <Label text="Floor:" GridPane.columnIndex="0" GridPane.rowIndex="1" style="-fx-text-fill: #666;"/>
+                        <Label text="1st Floor" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                        <Label text="Type:" GridPane.columnIndex="0" GridPane.rowIndex="2" style="-fx-text-fill: #666;"/>
+                        <Label text="Single" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+                        <Label text="Rate:" GridPane.columnIndex="0" GridPane.rowIndex="3" style="-fx-text-fill: #666;"/>
+                        <Label text="₱5,000/mo" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+                    </GridPane>
+                    <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 10 0 0 0;">
+                        <Button text="View Details" style="-fx-background-color: transparent; -fx-border-color: #1A1A1A; -fx-border-radius: 4;"/>
+                        <MenuButton text="More" style="-fx-background-color: transparent;">
+                            <items>
+                                <MenuItem text="Edit"/>
+                                <MenuItem text="Delete"/>
+                                <MenuItem text="Mark as Occupied"/>
+                            </items>
+                        </MenuButton>
+                    </HBox>
+                </VBox>
+            </FlowPane>
+        </ScrollPane>
+    </VBox>
+</VBox>
