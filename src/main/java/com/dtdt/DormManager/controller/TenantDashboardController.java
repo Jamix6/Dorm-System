@@ -100,6 +100,8 @@ public class TenantDashboardController {
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         stage.getScene().setRoot(root);
         stage.setTitle("Payment Registration");
+
+
     }
 
     // === Private Helper Methods ===

@@ -9,28 +9,23 @@ import java.io.IOException;
 
 public class Main extends Application {
 
-    private static Stage stg; // To store the main window stage
+    private static Stage stg; 
 
     @Override
     public void start(Stage primaryStage) throws IOException {
-        stg = primaryStage; // Save the stage
-        primaryStage.setResizable(false);
+        stg = primaryStage; 
+        //primaryStage.setResizable(false);
         primaryStage.setTitle("Dorm Management System");
 
-        // Load the FXML file for the login view
+   
         FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("view/login-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 900, 600); // Set scene dimensions
+        Scene scene = new Scene(fxmlLoader.load(), 900, 600); 
 
         primaryStage.setScene(scene);
         primaryStage.show();
     }
 
-    /**
-     * A static method to change the scene.
-     * This will be called from the controller to switch between login and signup.
-     * @param fxml The FXML file to load (e.g., "signup-view.fxml")
-     * @throws IOException
-     */
+    
     public void changeScene(String fxml) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource("view/" + fxml));
         stg.getScene().setRoot(fxmlLoader.load());

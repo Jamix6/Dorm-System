@@ -111,6 +111,8 @@ public class LoginController {
             stage.getScene().setRoot(root);
             stage.setTitle("Tenant Dashboard");
 
+
+
         } else if (user instanceof Admin) {
                 // Load the admin dashboard
                 FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/admin/admin-dashboard.fxml"));

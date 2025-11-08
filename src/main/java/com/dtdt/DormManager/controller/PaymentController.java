@@ -6,6 +6,12 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
+import com.dtdt.DormManager.controller.TenantDashboardController;
+import javafx.event.ActionEvent;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.stage.Stage;
 
 import java.io.IOException;
 
@@ -63,15 +69,23 @@ public class PaymentController {
      * FXML Action: Called when "Dashboard" hyperlink is clicked.
      */
     @FXML
-    private void goToDashboard() throws IOException {
-        // This is a simple implementation. A better one would
-        // use a single "Main" controller to swap center content.
-        Main main = new Main();
-        main.changeScene("tenant-dashboard.fxml");
+    private void goToDashboard(ActionEvent event) throws IOException {
+        // 1. Load the dashboard FXML
+        FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/tenant-dashboard.fxml"));
+        Parent root = loader.load();
 
-        // You would also need to re-pass the Tenant data,
-        // which makes this simple method complicated.
-        System.out.println("Go to Dashboard (Needs logic to pass tenant data back)");
+        // 2. Get the dashboard controller
+        TenantDashboardController controller = loader.getController();
+
+        // 3. Pass the tenant data BACK to the dashboard
+        controller.initData(this.currentTenant);
+
+        // 4. Get the current stage (window) from the event
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.getScene().setRoot(root);
+        stage.setTitle("Tenant Dashboard");
+
+
     }
 
     /**
