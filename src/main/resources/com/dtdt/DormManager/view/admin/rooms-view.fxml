@@ -31,8 +31,6 @@
             <ComboBox fx:id="typeCombo" promptText="Type" prefWidth="120"/>
             <ComboBox fx:id="statusCombo" promptText="Status" prefWidth="120"/>
             <Pane HBox.hgrow="ALWAYS"/>
-            <ToggleButton text="Grid View" style="-fx-background-color: #1A1A1A; -fx-text-fill: white;"/>
-            <ToggleButton text="List View" style="-fx-background-color: transparent; -fx-border-color: #1A1A1A;"/>
         </HBox>
 
         <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS">

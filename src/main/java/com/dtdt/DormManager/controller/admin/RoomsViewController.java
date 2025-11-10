@@ -23,6 +23,8 @@ import java.util.UUID;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.Map;
+import java.util.HashMap;
 
 public class RoomsViewController {
     @FXML private FlowPane roomsContainer;
@@ -339,19 +341,93 @@ public class RoomsViewController {
 
         MenuButton more = new MenuButton("More");
         more.setStyle("-fx-background-color: transparent;");
+        MenuItem editItem = new MenuItem("Edit");
+        editItem.setOnAction(e -> openEditRoomDialog(room));
         MenuItem deleteItem = createDeleteMenuItem(room.getId(), card);
-        more.getItems().addAll(
-                new MenuItem("Edit"),
-                deleteItem,
-                new MenuItem(isOccupied ? "Mark as Available" : "Mark as Occupied")
-        );
+        MenuItem statusToggle = new MenuItem(isOccupied ? "Mark as Available" : "Mark as Occupied");
+        statusToggle.setOnAction(e -> {
+            // Toggle status locally and in Firestore
+            String newStatus = isOccupied ? "Available" : "Occupied";
+            try {
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("status", newStatus);
+                FirebaseInit.db.collection("rooms").document(room.getId()).update(updates);
+                // Update local model and RoomStore
+                room.setStatus(newStatus);
+                for (Room r : roomList) if (Objects.equals(r.getId(), room.getId())) r.setStatus(newStatus);
+                RoomStore.getInstance().removeById(room.getId());
+                RoomStore.getInstance().addRoom(room);
+                renderRooms();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+        more.getItems().addAll(editItem, deleteItem, statusToggle);
 
         actions.getChildren().addAll(viewDetails, more);
         card.getChildren().addAll(header, separator, details, actions);
         return card;
     }
 
-    // Helper to create delete menu item
+    // Opens a small dialog to edit only the room type (and adjust capacity automatically)
+    private void openEditRoomDialog(Room room) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Edit Room Type");
+        DialogPane pane = dialog.getDialogPane();
+        pane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        ComboBox<String> typeSelect = new ComboBox<>();
+        typeSelect.getItems().addAll("Single", "Shared(D)", "Shared");
+        typeSelect.setValue(room.getRoomType() == null ? "Single" : room.getRoomType());
+
+        VBox content = new VBox(10, new Label("Room Type:"), typeSelect);
+        content.setStyle("-fx-padding: 10;");
+        pane.setContent(content);
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            String newType = typeSelect.getValue();
+            int newCapacity = capacityForType(newType);
+
+            // Prepare updates
+            try {
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("roomType", newType);
+                updates.put("capacity", newCapacity);
+
+                // Update Firestore
+                FirebaseInit.db.collection("rooms").document(room.getId()).update(updates).addListener(() -> {
+                    Platform.runLater(() -> {
+                        // Update local model
+                        room.setRoomType(newType);
+                        room.setCapacity(newCapacity);
+                        // update roomList
+                        for (Room r : roomList) if (Objects.equals(r.getId(), room.getId())) { r.setRoomType(newType); r.setCapacity(newCapacity); }
+                        // update RoomStore
+                        RoomStore.getInstance().removeById(room.getId());
+                        RoomStore.getInstance().addRoom(room);
+                        // Re-render UI
+                        renderRooms();
+                    });
+                }, Runnable::run);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // Map the room type to capacity according to rules: Single=1, Shared(D)=2, Shared=4
+    private int capacityForType(String type) {
+        if (type == null) return 1;
+        switch (type) {
+            case "Shared(D)": return 2;
+            case "Shared": return 4;
+            case "Single":
+            default:
+                return 1;
+        }
+    }
+
     private MenuItem createDeleteMenuItem(String documentId, Node cardToRemove) {
         MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(e -> {
