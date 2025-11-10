@@ -97,14 +97,15 @@
                         <font><Font name="System Bold" size="14.0" /></font>
                     </Label>
                     <HBox spacing="10.0">
-                        <Button style="-fx-background-color: #E0E0E0;" text="Gcash" />
-                        <Button style="-fx-background-color: #1A1A1A; -fx-text-fill: WHITE;" text="BPI" />
-                        <Button style="-fx-background-color: #E0E0E0;" text="BDO" />
-                        <Button style="-fx-background-color: #E0E0E0;" text="Metrobank" />
+                        <Button fx:id="gcashButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="Gcash" onAction="#selectPaymentMethod" />
+                        <Button fx:id="bpiButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="BPI" onAction="#selectPaymentMethod" />
+                        <Button fx:id="bdoButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="BDO" onAction="#selectPaymentMethod" />
+                        <Button fx:id="metroButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="Metrobank" onAction="#selectPaymentMethod" />
                     </HBox>
                     <Label text="Request Reciept" />
                     <ComboBox fx:id="receiptComboBox" prefWidth="300.0" promptText="July" />
                     <Button fx:id="savePdfButton" style="-fx-background-color: #1A1A1A; -fx-text-fill: WHITE;" text="Save PDF" />
+                    <Button fx:id="makePaymentButton" style="-fx-background-color: #1A1A1A; -fx-text-fill: WHITE;" text="Make Payment" onAction="#openPaymentDialog" />
                     <VBox style="-fx-background-color: #FFF0F0; -fx-border-color: #FFB0B0; -fx-padding: 10; -fx-background-radius: 5; -fx-border-radius: 5;">
                         <Label text="Late Payment Detected" textFill="#D8000C">
                             <font><Font name="System Bold" size="12.0" /></font>

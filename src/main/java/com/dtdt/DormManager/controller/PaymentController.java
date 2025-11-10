@@ -3,6 +3,7 @@ package com.dtdt.DormManager.controller;
 import com.dtdt.DormManager.Main;
 import com.dtdt.DormManager.model.Tenant;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
@@ -11,6 +12,8 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -31,6 +34,86 @@ public class PaymentController {
     // === FXML Page-Specific Components ===
     @FXML private ComboBox<String> receiptComboBox;
     @FXML private VBox billingHistoryVBox;
+
+    // payment method buttons
+    @FXML private Button gcashButton;
+    @FXML private Button bpiButton;
+    @FXML private Button bdoButton;
+    @FXML private Button metroButton;
+
+    // currently selected payment method (text)
+    private String selectedMethod = null;
+
+    /**
+     * Handler for the payment option buttons in the main view. Makes clicked button black with white text,
+     * and resets the others to white with black text.
+     */
+    @FXML
+    private void selectPaymentMethod(ActionEvent event) {
+        Object src = event.getSource();
+        // Reset all to default
+        resetPaymentButtonStyle(gcashButton);
+        resetPaymentButtonStyle(bpiButton);
+        resetPaymentButtonStyle(bdoButton);
+        resetPaymentButtonStyle(metroButton);
+
+        // Style the clicked button as selected
+        if (src == gcashButton) {
+            setSelectedStyle(gcashButton);
+            selectedMethod = "Gcash";
+        } else if (src == bpiButton) {
+            setSelectedStyle(bpiButton);
+            selectedMethod = "BPI";
+        } else if (src == bdoButton) {
+            setSelectedStyle(bdoButton);
+            selectedMethod = "BDO";
+        } else if (src == metroButton) {
+            setSelectedStyle(metroButton);
+            selectedMethod = "Metrobank";
+        }
+    }
+
+    private void resetPaymentButtonStyle(Button btn) {
+        if (btn == null) return;
+        btn.setStyle("-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;");
+    }
+
+    private void setSelectedStyle(Button btn) {
+        if (btn == null) return;
+        btn.setStyle("-fx-background-color: black; -fx-text-fill: white;");
+    }
+
+    // Handler to open payment dialog
+    @FXML
+    private void openPaymentDialog(ActionEvent event) {
+        try {
+            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/payment-dialog.fxml"));
+            Parent dialogRoot = loader.load();
+
+            // Create a new stage for the popup
+            Stage dialogStage = new Stage();
+            dialogStage.initModality(Modality.APPLICATION_MODAL);
+            dialogStage.setTitle("Make Payment");
+            dialogStage.setScene(new Scene(dialogRoot));
+
+            // Pass the stage to the dialog controller so it can close itself
+            PaymentDialogController dialogController = loader.getController();
+            dialogController.setDialogStage(dialogStage);
+            // Pass currently selected method (if any) from main view buttons
+            if (selectedMethod != null) dialogController.setSelectedMethod(selectedMethod);
+
+            dialogStage.showAndWait();
+
+            PaymentDialogController.PaymentResult result = dialogController.getResult();
+            if (result != null) {
+                // For now, just print the result. Integrate with backend/payment logic here.
+                System.out.println("Payment submitted: " + result);
+                // TODO: Save payment record, update UI, show confirmation, etc.
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * This method will be called by the previous controller (or Login)
