@@ -44,6 +44,10 @@
                         <TextField fx:id="fullNameField" promptText="John Doe" />
                     </VBox>
                     <VBox prefWidth="300.0" spacing="5.0">
+                        <Label text="What was your assigned sex?" />
+                        <ComboBox fx:id="sexBox" prefWidth="300.0" promptText="Select Here" />
+                    </VBox>
+                    <VBox prefWidth="300.0" spacing="5.0">
                         <Label text="Student ID" />
                         <TextField fx:id="studentIdFieldSignUp" promptText="Enter your student ID" />
                     </VBox>

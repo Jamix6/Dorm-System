@@ -1,6 +1,5 @@
 package com.dtdt.DormManager.controller;
 
-// === JavaFX Imports ===
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -13,18 +12,12 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
-
-// === Java IO Import ===
 import java.io.IOException;
-
-// === Model Imports ===
 import com.dtdt.DormManager.model.Admin;
 import com.dtdt.DormManager.controller.admin.AdminDashboardController;
 import com.dtdt.DormManager.model.Owner;
 import com.dtdt.DormManager.model.Tenant;
 import com.dtdt.DormManager.model.User;
-
-// === Main App Import ===
 import com.dtdt.DormManager.Main;
 
 public class LoginController {
@@ -44,6 +37,9 @@ public class LoginController {
     @FXML private ComboBox<String> currentYearBox;
     @FXML private Button createAccountButton;
 
+    // Gender/Sex selection for signup (only exists in signup-view.fxml)
+    @FXML private ComboBox<String> sexBox;
+
     /**
      * This method is automatically called after the FXML is loaded.
      * We use it to populate the ComboBox.
@@ -57,78 +53,61 @@ public class LoginController {
                     "1st Year", "2nd Year", "3rd Year", "4th Year", "5th Year"
             ));
         }
+
+        // Populate sexBox when present (signup view)
+        if (sexBox != null) {
+            sexBox.setItems(FXCollections.observableArrayList("Male", "Female"));
+        }
     }
 
     /**
      * Handles the "Sign In" button click.
-     * @param event The ActionEvent from the button click.
      */
     @FXML
     protected void onSignInClick(ActionEvent event) throws IOException {
         System.out.println("Sign In button clicked.");
 
-        // === 1. DUMMY AUTHENTICATION ===
-        // TODO: Replace this with real database authentication
-        // Simple credential check to demonstrate role-based navigation.
-        // If the credentials match the built-in admin account, create an Admin.
-        // Otherwise we create a Tenant for demonstration (existing behavior).
         User user;
         String idInput = studentIdField.getText() == null ? "" : studentIdField.getText().trim();
         String emailInput = emailFieldLogin.getText() == null ? "" : emailFieldLogin.getText().trim();
         String pwInput = passwordFieldLogin.getText() == null ? "" : passwordFieldLogin.getText();
 
-        // Hard-coded admin credential (change as needed)
         if ((idInput.equalsIgnoreCase("admin") || emailInput.equalsIgnoreCase("admin@dorm.local"))
                 && pwInput.equals("adminpass")) {
             user = new Admin("admin", "admin@dorm.local", "adminpass", "System Admin", "Manager");
         } else {
-            // Default to tenant (existing demo behavior)
             user = new Tenant(
-                    idInput,                    // student id
-                    emailInput,                 // email
-                    pwInput,                    // password
-                    "Tenant Name",             // Full Name (demo)
-                    2                           // Current Year (demo)
+                    idInput,
+                    emailInput,
+                    pwInput,
+                    "Tenant Name",
+                    2
             );
         }
-        // --- End of Dummy Auth ---
 
-
-        // === 2. CHECK USER ROLE AND LOAD DASHBOARD ===
         if (user instanceof Tenant) {
-            // Load the tenant dashboard
             FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/tenant-dashboard.fxml"));
             Parent root = loader.load();
 
-            // Get the controller of the new dashboard
             TenantDashboardController controller = loader.getController();
 
-            // Pass the logged-in tenant to the controller
             controller.initData((Tenant) user);
 
-            // Get the current stage (window) and change the scene
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
             stage.setTitle("Tenant Dashboard");
 
-
-
         } else if (user instanceof Admin) {
-                // Load the admin dashboard
                 FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/admin/admin-dashboard.fxml"));
                 Parent root = loader.load();
 
-                // Get the controller and pass the admin data
                 AdminDashboardController controller = loader.getController();
                 controller.initData((Admin) user);
 
-                // Get the current stage and set the scene
                 Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
                 stage.getScene().setRoot(root);
                 stage.setTitle("Admin Dashboard");
         } else if (user instanceof Owner) {
-            // TODO: Build this
-            // main.changeScene("owner-dashboard.fxml");
         }
     }
 
@@ -142,7 +121,6 @@ public class LoginController {
         // 1. Check if passwords match
         if (!passwordFieldSignUp.getText().equals(confirmPasswordField.getText())) {
             System.err.println("Passwords do not match!");
-            // TODO: Show a visible error message to the user
             return;
         }
 
@@ -153,28 +131,37 @@ public class LoginController {
             year = Integer.parseInt(selectedYear.substring(0, 1));
         }
 
+        // NEW: read selected sex (can be null if not chosen)
+        String selectedSex = null;
+        if (sexBox != null) {
+            selectedSex = sexBox.getValue();
+        }
+
         // 3. Create a new Tenant object from the model
         Tenant newTenant = new Tenant(
                 studentIdFieldSignUp.getText(),
                 emailFieldSignUp.getText(),
-                passwordFieldSignUp.getText(), // TODO: Hash this password!
+                passwordFieldSignUp.getText(),
                 fullNameField.getText(),
                 year
         );
+
+        // Log or store the selected sex for later integration
+        System.out.println("Selected sex for new tenant: " + selectedSex);
+        // TODO: Add a 'sex' field to Tenant model (and constructor or setter) and persist it to DB.
+        // e.g. newTenant.setSex(selectedSex); // uncomment once model supports it
 
         // 4. TODO: Save this 'newTenant' object to your database
         System.out.println("New Tenant Created: " + newTenant.getFullName());
 
         // 5. After successful creation, automatically switch to the login screen
-        goToSignIn(null); // Pass 'null' because it's not a mouse click event
+        goToSignIn(null);
     }
-
-
 
     @FXML
     protected void goToReservation(MouseEvent event) throws IOException {
         Main main = new Main();
-        main.changeScene("reservation-view.fxml"); // Make sure this is updated too
+        main.changeScene("reservation-view.fxml");
     }
 
     @FXML

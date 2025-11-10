@@ -21,7 +21,7 @@ public class Main extends Application {
         try {
             FirebaseInit.initialize();
             System.out.println("Firebase initialized successfully");
-            // This line is fine, it confirms the DB is ready
+            // This line is fine as it confirms the DB is ready
             Firestore db = FirebaseInit.getDatabase();
         } catch (IOException e) {
             System.err.println("Failed to initialize Firebase: " + e.getMessage());
