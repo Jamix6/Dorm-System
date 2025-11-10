@@ -17,10 +17,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javafx.scene.Node;
-
+import java.util.Map;
+import java.util.HashMap;
+import com.dtdt.DormManager.service.RoomStore;
+import com.dtdt.DormManager.model.Room;
+import javafx.collections.ListChangeListener;
 
 public class BuildingsViewController {
     @FXML private VBox buildingsContainer;
+    // Map buildingId -> {occupancyBox, availableBox}
+    private final Map<String, VBox[]> buildingStats = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -100,6 +106,8 @@ public class BuildingsViewController {
                         Building building = document.toObject(Building.class);
                         addBuildingCard(building);
                     }
+                    // Start listening for room changes so stats can update
+                    attachRoomStoreListener();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -130,11 +138,14 @@ public class BuildingsViewController {
         buildingDesc.setStyle("-fx-text-fill: #666;");
 
         HBox stats = new HBox(40);
-        stats.getChildren().addAll(
-                createInfoBox("Occupancy Rate", "85%"), // TODO: Add to model
-                createInfoBox("Total Rooms", String.valueOf(building.getTotalRooms())), // Use getter
-                createInfoBox("Available Rooms", "6") // TODO: Add to model
-        );
+        // Create dynamic stat boxes; keep references so we can update later
+        VBox occupancyBox = createInfoBox("Occupancy Rate", "0%");
+        VBox totalRoomsBox = createInfoBox("Total Rooms", String.valueOf(building.getTotalRooms()));
+        VBox availableBox = createInfoBox("Available Rooms", "0");
+        stats.getChildren().addAll(occupancyBox, totalRoomsBox, availableBox);
+        // store references for updating in map
+        buildingStats.put(building.getId(), new VBox[]{occupancyBox, availableBox});
+
         details.getChildren().addAll(buildingName, buildingDesc, stats);
 
         Pane spacer = new Pane();
@@ -160,6 +171,8 @@ public class BuildingsViewController {
         card.getChildren().add(content);
 
         buildingsContainer.getChildren().add(card);
+        // Compute initial stats for this building
+        updateStatsForBuilding(building.getId(), occupancyBox, availableBox);
     }
 
     // Helper method to create a "Delete" menu item
@@ -194,5 +207,37 @@ public class BuildingsViewController {
 
     private void onViewDetailsClick(String buildingName) {
         System.out.println("View details for " + buildingName);
+    }
+
+    private void attachRoomStoreListener() {
+        RoomStore store = RoomStore.getInstance();
+        store.getRooms().addListener((ListChangeListener<Room>) change -> {
+            while (change.next()) {
+                Platform.runLater(() -> {
+                    for (Map.Entry<String, VBox[]> entry : buildingStats.entrySet()) {
+                        String buildingId = entry.getKey();
+                        VBox occupancyBox = entry.getValue()[0];
+                        VBox availableBox = entry.getValue()[1];
+                        updateStatsForBuilding(buildingId, occupancyBox, availableBox);
+                    }
+                });
+            }
+        });
+    }
+
+    private void updateStatsForBuilding(String buildingId, VBox occupancyBox, VBox availableBox) {
+        if (buildingId == null) return;
+        List<Room> rooms = RoomStore.getInstance().getRoomsByBuilding(buildingId);
+        int total = rooms.size();
+        int occupied = 0;
+        for (Room r : rooms) if ("Occupied".equalsIgnoreCase(r.getStatus())) occupied++;
+        int available = total - occupied;
+        String occupancyRate = total == 0 ? "0%" : ((occupied * 100) / total) + "%";
+
+        // occupancyBox: children[1] is the value label per createInfoBox
+        Label occValue = (Label) occupancyBox.getChildren().get(1);
+        occValue.setText(occupancyRate);
+        Label availValue = (Label) availableBox.getChildren().get(1);
+        availValue.setText(String.valueOf(available));
     }
 }

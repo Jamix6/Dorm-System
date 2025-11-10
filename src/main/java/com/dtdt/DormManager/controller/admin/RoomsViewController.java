@@ -3,6 +3,7 @@ package com.dtdt.DormManager.controller.admin;
 import com.dtdt.DormManager.controller.config.FirebaseInit;
 import com.dtdt.DormManager.model.Building; // We need this to get a list of buildings
 import com.dtdt.DormManager.model.Room;
+import com.dtdt.DormManager.service.RoomStore;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -19,34 +20,183 @@ import javafx.geometry.Pos;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Objects;
 
 public class RoomsViewController {
     @FXML private FlowPane roomsContainer;
+    @FXML private ComboBox<Building> buildingCombo;
+    @FXML private ComboBox<String> floorCombo;
+    @FXML private ComboBox<String> typeCombo;
+    @FXML private ComboBox<String> statusCombo;
+    @FXML private Button addRoomBtn;
+
+    // Local cache of rooms so we can sort/filter in-memory without refetching
+    private final ObservableList<Room> roomList = FXCollections.observableArrayList();
+
+    // No programmatic toolbar anymore — we use the FXML-provided ComboBoxes
 
     @FXML
     public void initialize() {
         loadRooms();
+        setupFilters();
+    }
+
+    private void setupFilters() {
+        // When building changes, repopulate floor/type/status based on rooms in that building
+        if (buildingCombo != null) {
+            buildingCombo.setCellFactory(lv -> new ListCell<>() {
+                @Override protected void updateItem(Building item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? null : item.getName());
+                }
+            });
+            buildingCombo.setButtonCell(new ListCell<>() {
+                @Override protected void updateItem(Building item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? null : item.getName());
+                }
+            });
+
+            buildingCombo.setOnAction(e -> populateDependentFiltersAndRender());
+        }
+
+        if (floorCombo != null) floorCombo.setOnAction(e -> renderRooms());
+        if (typeCombo != null) typeCombo.setOnAction(e -> renderRooms());
+        if (statusCombo != null) statusCombo.setOnAction(e -> renderRooms());
+    }
+
+    private void populateDependentFiltersAndRender() {
+        Building selected = buildingCombo == null ? null : buildingCombo.getValue();
+        if (selected == null) {
+            if (floorCombo != null) floorCombo.getItems().clear();
+            if (typeCombo != null) typeCombo.getItems().clear();
+            if (statusCombo != null) statusCombo.getItems().clear();
+            renderRooms();
+            return;
+        }
+
+        // Gather unique floors/types/status for the selected building
+        var floors = FXCollections.observableArrayList(new ArrayList<String>());
+        var types = FXCollections.observableArrayList(new ArrayList<String>());
+        var statuses = FXCollections.observableArrayList(new ArrayList<String>());
+
+        for (Room r : roomList) {
+            if (selected.getId().equals(r.getBuildingId())) {
+                String f = String.valueOf(r.getFloor());
+                if (!floors.contains(f)) floors.add(f);
+                if (r.getRoomType() != null && !types.contains(r.getRoomType())) types.add(r.getRoomType());
+                if (r.getStatus() != null && !statuses.contains(r.getStatus())) statuses.add(r.getStatus());
+            }
+        }
+
+        if (floorCombo != null) {
+            floorCombo.getItems().setAll(floors);
+            floorCombo.getSelectionModel().clearSelection();
+            floorCombo.setPromptText("Floor");
+        }
+        if (typeCombo != null) {
+            typeCombo.getItems().setAll(types);
+            typeCombo.getSelectionModel().clearSelection();
+            typeCombo.setPromptText("Type");
+        }
+        if (statusCombo != null) {
+            statusCombo.getItems().setAll(statuses);
+            statusCombo.getSelectionModel().clearSelection();
+            statusCombo.setPromptText("Status");
+        }
+
+        renderRooms();
     }
 
     private void loadRooms() {
-        roomsContainer.getChildren().clear();
-
+        // After loading rooms, we'll populate building dropdown and dependent filters
         ApiFuture<QuerySnapshot> future = FirebaseInit.db.collection("rooms").get();
         future.addListener(() -> {
             try {
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-                Platform.runLater(() -> {
-                    for (QueryDocumentSnapshot document : documents) {
-                        Room room = document.toObject(Room.class);
-                        VBox card = createRoomCard(room);
-                        roomsContainer.getChildren().add(card);
+                List<Room> fetched = new ArrayList<>();
+                for (QueryDocumentSnapshot document : documents) {
+                    Room room = document.toObject(Room.class);
+                    // Ensure the room's id is set if model uses it (some models expect it)
+                    try {
+                        java.lang.reflect.Field idField = Room.class.getDeclaredField("id");
+                        idField.setAccessible(true);
+                        Object existing = idField.get(room);
+                        if (existing == null) idField.set(room, document.getId());
+                    } catch (NoSuchFieldException nsf) {
+                        // ignore if no id field exists
+                    } catch (Exception ex) {
+                        // ignore reflection issues
                     }
+                    fetched.add(room);
+                }
+                Platform.runLater(() -> {
+                    roomList.setAll(fetched);
+                    // Update central RoomStore for other views to consume
+                    RoomStore.getInstance().setRooms(fetched);
+                    // Populate building combo from fetched rooms (unique buildings)
+                    populateBuildings();
+                    renderRooms();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }, Runnable::run);
+    }
+
+    private void populateBuildings() {
+        if (buildingCombo == null) return;
+        // Unique buildings from roomList
+        var buildings = FXCollections.observableArrayList(new ArrayList<Building>());
+        for (Room r : roomList) {
+            Building b = new Building();
+            b.setId(r.getBuildingId());
+            b.setName(r.getBuildingName());
+            // Ensure we only add unique building ids
+            boolean exists = false;
+            for (Building ex : buildings) if (ex.getId().equals(b.getId())) { exists = true; break; }
+            if (!exists) buildings.add(b);
+        }
+        buildingCombo.getItems().setAll(buildings);
+        buildingCombo.getSelectionModel().clearSelection();
+    }
+
+    /**
+     * Renders room cards from roomList into the roomsContainer, applying the selected sort.
+     * Preserves the toolbar as the first child.
+     */
+    private void renderRooms() {
+        // Filter rooms by building/floor/type/status selections
+        Building selectedBuilding = buildingCombo == null ? null : buildingCombo.getValue();
+        String selectedFloor = floorCombo == null ? null : floorCombo.getValue();
+        String selectedType = typeCombo == null ? null : typeCombo.getValue();
+        String selectedStatus = statusCombo == null ? null : statusCombo.getValue();
+
+        List<Room> filtered = new ArrayList<>();
+        for (Room r : roomList) {
+            if (selectedBuilding != null && !Objects.equals(r.getBuildingId(), selectedBuilding.getId())) continue;
+            if (selectedFloor != null && !selectedFloor.isEmpty() && !String.valueOf(r.getFloor()).equals(selectedFloor)) continue;
+            if (selectedType != null && !selectedType.isEmpty() && !Objects.equals(r.getRoomType(), selectedType)) continue;
+            if (selectedStatus != null && !selectedStatus.isEmpty() && !Objects.equals(r.getStatus(), selectedStatus)) continue;
+            filtered.add(r);
+        }
+
+        // For now, order by room number within the filtered set
+        filtered.sort(Comparator.comparing(r -> safeString(r.getRoomNumber())));
+
+        Platform.runLater(() -> {
+            roomsContainer.getChildren().clear();
+            for (Room room : filtered) {
+                VBox card = createRoomCard(room);
+                roomsContainer.getChildren().add(card);
+            }
+        });
+    }
+
+    private String safeString(String s) {
+        return s == null ? "" : s.toLowerCase();
     }
 
     @FXML
@@ -125,12 +275,16 @@ public class RoomsViewController {
 
                 // --- 5. Save to Firebase ---
                 String newRoomId = UUID.randomUUID().toString();
+                newRoom.setId(newRoomId); // ensure the model has its id set locally
                 DocumentReference docRef = FirebaseInit.db.collection("rooms").document(newRoomId);
                 docRef.set(newRoom);
 
-                // Add new card to UI immediately
-                VBox card = createRoomCard(newRoom);
-                roomsContainer.getChildren().add(card);
+                // Add new card to UI immediately and local list
+                roomList.add(newRoom);
+                RoomStore.getInstance().addRoom(newRoom);
+                 // After adding a room, refresh building list and dependent filters
+                 populateBuildings();
+                 renderRooms();
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -207,6 +361,10 @@ public class RoomsViewController {
             deleteFuture.addListener(() -> {
                 Platform.runLater(() -> {
                     roomsContainer.getChildren().remove(cardToRemove);
+                    // Also remove from local list
+                    roomList.removeIf(r -> Objects.equals(r.getId(), documentId));
+                    // Also update the central store
+                    RoomStore.getInstance().removeById(documentId);
                 });
             }, Runnable::run);
         });
