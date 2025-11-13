@@ -9,11 +9,13 @@ public class PaymentDialogController {
 
     @FXML private TextField amountField;
     @FXML private Label selectedMethodLabel;
+    @FXML private Label selectedMonthLabel;
     @FXML private TextField referenceField;
     @FXML private TextField payerNameField;
 
     private Stage dialogStage;
     private PaymentResult result;
+    private String selectedMonth;
 
     @FXML
     public void initialize() {
@@ -40,6 +42,7 @@ public class PaymentDialogController {
         String method = (selectedMethodLabel != null) ? selectedMethodLabel.getText() : null;
         String reference = referenceField.getText();
         String payer = payerNameField.getText();
+        String month = this.selectedMonth;
 
         // Basic validation
         if (amountText == null || amountText.trim().isEmpty()) {
@@ -63,7 +66,7 @@ public class PaymentDialogController {
 
         // Accept empty reference/payer as optional
 
-        this.result = new PaymentResult(amount, method, reference, payer);
+        this.result = new PaymentResult(amount, method, reference, payer, month);
         if (dialogStage != null) dialogStage.close();
     }
 
@@ -73,23 +76,33 @@ public class PaymentDialogController {
     public void setSelectedMethod(String method) {
         if (selectedMethodLabel != null) selectedMethodLabel.setText(method);
     }
+    
+    /**
+     * Called by the parent controller to set which month was selected.
+     */
+    public void setSelectedMonth(String month) {
+        this.selectedMonth = month;
+        if (selectedMonthLabel != null) selectedMonthLabel.setText(month);
+    }
 
     public static class PaymentResult {
         public final double amount;
         public final String method;
         public final String reference;
         public final String payerName;
+        public final String month;
 
-        public PaymentResult(double amount, String method, String reference, String payerName) {
+        public PaymentResult(double amount, String method, String reference, String payerName, String month) {
             this.amount = amount;
             this.method = method;
             this.reference = reference;
             this.payerName = payerName;
+            this.month = month;
         }
 
         @Override
         public String toString() {
-            return "PaymentResult{" + "amount=" + amount + ", method='" + method + '\'' + ", reference='" + reference + '\'' + ", payerName='" + payerName + '\'' + '}';
+            return "PaymentResult{" + "amount=" + amount + ", method='" + method + '\'' + ", reference='" + reference + '\'' + ", payerName='" + payerName + '\'' + ", month='" + month + '\'' + '}';
         }
     }
 }

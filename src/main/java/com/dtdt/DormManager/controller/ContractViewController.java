@@ -1,9 +1,7 @@
 package com.dtdt.DormManager.controller;
 
 import com.dtdt.DormManager.Main;
-import com.dtdt.DormManager.controller.config.FirebaseInit;
 import com.dtdt.DormManager.model.Contract;
-import com.dtdt.DormManager.model.Room;
 import com.dtdt.DormManager.model.Tenant;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
@@ -17,6 +15,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.stage.Stage;
+import com.dtdt.DormManager.controller.config.FirebaseInit;
 
 import java.io.IOException;
 import java.text.NumberFormat;

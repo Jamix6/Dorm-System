@@ -1,12 +1,15 @@
 package com.dtdt.DormManager;
 
-import com.dtdt.DormManager.controller.config.FirebaseInit;
-import com.google.cloud.firestore.Firestore;
 import javafx.application.Application;
-import javafx.application.Platform; // <-- Import Platform
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+
+
+
+import com.dtdt.DormManager.controller.config.FirebaseInit;
+import com.google.cloud.firestore.Firestore;
 
 import java.io.IOException;
 
@@ -22,7 +25,7 @@ public class Main extends Application {
             FirebaseInit.initialize();
             System.out.println("Main connected to Firebase.");
             // This line is fine as it confirms the DB is ready
-            Firestore db = FirebaseInit.getDatabase();
+           Firestore db = FirebaseInit.getDatabase();
         } catch (IOException e) {
             System.err.println("Failed to initialize Firebase: " + e.getMessage());
             e.printStackTrace();

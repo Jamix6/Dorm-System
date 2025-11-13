@@ -14,7 +14,7 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane style="-fx-background-color: #F4F7FC;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.dtdt.DormManager.controller.PaymentController">
+<BorderPane style="-fx-background-color: #F4F7FC;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.dtdt.DormManager.controller.PaymentController">
     <top>
         <HBox alignment="CENTER_LEFT" prefHeight="50.0" style="-fx-background-color: #1A1A1A;" BorderPane.alignment="CENTER">
             <padding>
@@ -49,7 +49,7 @@
 
                 <Hyperlink onAction="#goToDashboard" text="Dashboard" />
                 <Hyperlink text="Profile" />
-                <Hyperlink text="Payment" style="-fx-font-weight: bold; -fx-underline: true;" />
+                <Hyperlink style="-fx-font-weight: bold; -fx-underline: true;" text="Payment" />
                 <VBox alignment="CENTER_RIGHT">
                     <Label fx:id="tenantEmailLabel" text="tenant@test.com" textFill="#1a1a1a">
                         <font><Font name="System Bold" size="14.0" /></font>
@@ -97,15 +97,18 @@
                         <font><Font name="System Bold" size="14.0" /></font>
                     </Label>
                     <HBox spacing="10.0">
-                        <Button fx:id="gcashButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="Gcash" onAction="#selectPaymentMethod" />
-                        <Button fx:id="bpiButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="BPI" onAction="#selectPaymentMethod" />
-                        <Button fx:id="bdoButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="BDO" onAction="#selectPaymentMethod" />
-                        <Button fx:id="metroButton" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0;" text="Metrobank" onAction="#selectPaymentMethod" />
+                        <Button fx:id="gcashButton" onAction="#selectPaymentMethod" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0; -fx-border-radius: 5;" text="Gcash" />
+                        <Button fx:id="bpiButton" onAction="#selectPaymentMethod" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0; -fx-border-radius: 5;" text="BPI" />
+                        <Button fx:id="bdoButton" onAction="#selectPaymentMethod" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0; -fx-border-radius: 5;" text="BDO" />
+                        <Button fx:id="metroButton" onAction="#selectPaymentMethod" style="-fx-background-color: white; -fx-text-fill: black; -fx-border-color: #E0E0E0; -fx-border-radius: 5;" text="Metrobank" />
                     </HBox>
+                    
+                    <Label fx:id="validationMessageLabel" style="-fx-text-fill: #D8000C; -fx-font-weight: bold;" text="" wrapText="true" />
+                    
                     <Label text="Request Reciept" />
-                    <ComboBox fx:id="receiptComboBox" prefWidth="300.0" promptText="July" />
-                    <Button fx:id="savePdfButton" style="-fx-background-color: #1A1A1A; -fx-text-fill: WHITE;" text="Save PDF" />
-                    <Button fx:id="makePaymentButton" style="-fx-background-color: #1A1A1A; -fx-text-fill: WHITE;" text="Make Payment" onAction="#openPaymentDialog" />
+                    <ComboBox fx:id="receiptComboBox" prefWidth="300.0" promptText="Choose Month" style="-fx-border-radius: 6; -fx-background-color: white; -fx-border-color: #E0E0E0;" />
+                    <Button fx:id="savePdfButton" onAction="#savePDF" style="-fx-background-color: #1A1A1A; -fx-text-fill: WHITE;" text="Save File" />
+                    <Button fx:id="makePaymentButton" onAction="#openPaymentDialog" style="-fx-background-color: #1A1A1A; -fx-text-fill: WHITE;" text="Make Payment" />
                     <VBox style="-fx-background-color: #FFF0F0; -fx-border-color: #FFB0B0; -fx-padding: 10; -fx-background-radius: 5; -fx-border-radius: 5;">
                         <Label text="Late Payment Detected" textFill="#D8000C">
                             <font><Font name="System Bold" size="12.0" /></font>
@@ -114,7 +117,10 @@
                     </VBox>
                 </VBox>
 
-                <VBox HBox.hgrow="ALWAYS" spacing="10.0">
+                <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+                    <Label style="-fx-font-weight: bold;" text="SELECT MONTH TO PAY FOR:">
+                        <font><Font name="System Bold" size="14.0" /></font>
+                    </Label>
                     <ScrollPane fitToWidth="true" hbarPolicy="NEVER" style="-fx-background-color: transparent; -fx-background-insets: 0;" VBox.vgrow="ALWAYS">
                         <VBox fx:id="billingHistoryVBox" spacing="15.0">
                             <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 15 0;">
@@ -122,7 +128,11 @@
                                     <Label text="July 2025"><font><Font name="System Bold" size="16.0" /></font></Label>
                                     <HBox spacing="5.0">
                                         <Label text="Current Status:" />
-                                        <Label text="PAID" style="-fx-text-fill: #008000; -fx-font-weight: bold;" />
+                                        <Label style="-fx-text-fill: #D8000C; -fx-font-weight: bold;" text="UNPAID" />
+                                    </HBox>
+                                    <HBox spacing="5.0">
+                                        <Label style="-fx-text-fill: #555555;" text="Due Date:" />
+                                        <Label style="-fx-text-fill: #1a1a1a; -fx-font-weight: bold;" text="July 1, 2025" />
                                     </HBox>
                                 </VBox>
                             </HBox>
@@ -131,7 +141,63 @@
                                     <Label text="August 2025"><font><Font name="System Bold" size="16.0" /></font></Label>
                                     <HBox spacing="5.0">
                                         <Label text="Current Status:" />
-                                        <Label text="PAID" style="-fx-text-fill: #008000; -fx-font-weight: bold;" />
+                                        <Label style="-fx-text-fill: #D8000C; -fx-font-weight: bold;" text="UNPAID" />
+                                    </HBox>
+                                    <HBox spacing="5.0">
+                                        <Label style="-fx-text-fill: #555555;" text="Due Date:" />
+                                        <Label style="-fx-text-fill: #1a1a1a; -fx-font-weight: bold;" text="August 1, 2025" />
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 15 0;">
+                                <VBox>
+                                    <Label text="September 2025"><font><Font name="System Bold" size="16.0" /></font></Label>
+                                    <HBox spacing="5.0">
+                                        <Label text="Current Status:" />
+                                        <Label style="-fx-text-fill: #D8000C; -fx-font-weight: bold;" text="UNPAID" />
+                                    </HBox>
+                                    <HBox spacing="5.0">
+                                        <Label style="-fx-text-fill: #555555;" text="Due Date:" />
+                                        <Label style="-fx-text-fill: #1a1a1a; -fx-font-weight: bold;" text="September 1, 2025" />
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 15 0;">
+                                <VBox>
+                                    <Label text="October 2025"><font><Font name="System Bold" size="16.0" /></font></Label>
+                                    <HBox spacing="5.0">
+                                        <Label text="Current Status:" />
+                                        <Label style="-fx-text-fill: #D8000C; -fx-font-weight: bold;" text="UNPAID" />
+                                    </HBox>
+                                    <HBox spacing="5.0">
+                                        <Label style="-fx-text-fill: #555555;" text="Due Date:" />
+                                        <Label style="-fx-text-fill: #1a1a1a; -fx-font-weight: bold;" text="October 1, 2025" />
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 15 0;">
+                                <VBox>
+                                    <Label text="November 2025"><font><Font name="System Bold" size="16.0" /></font></Label>
+                                    <HBox spacing="5.0">
+                                        <Label text="Current Status:" />
+                                        <Label style="-fx-text-fill: #D8000C; -fx-font-weight: bold;" text="UNPAID" />
+                                    </HBox>
+                                    <HBox spacing="5.0">
+                                        <Label style="-fx-text-fill: #555555;" text="Due Date:" />
+                                        <Label style="-fx-text-fill: #1a1a1a; -fx-font-weight: bold;" text="November 1, 2025" />
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="15.0" style="-fx-border-color: #E0E0E0; -fx-border-width: 0 0 1 0; -fx-padding: 0 0 15 0;">
+                                <VBox>
+                                    <Label text="December 2025"><font><Font name="System Bold" size="16.0" /></font></Label>
+                                    <HBox spacing="5.0">
+                                        <Label text="Current Status:" />
+                                        <Label style="-fx-text-fill: #D8000C; -fx-font-weight: bold;" text="UNPAID" />
+                                    </HBox>
+                                    <HBox spacing="5.0">
+                                        <Label style="-fx-text-fill: #555555;" text="Due Date:" />
+                                        <Label style="-fx-text-fill: #1a1a1a; -fx-font-weight: bold;" text="December 1, 2025" />
                                     </HBox>
                                 </VBox>
                             </HBox>

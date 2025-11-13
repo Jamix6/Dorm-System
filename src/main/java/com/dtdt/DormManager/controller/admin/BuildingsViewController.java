@@ -1,6 +1,5 @@
 package com.dtdt.DormManager.controller.admin;
 
-import com.dtdt.DormManager.controller.config.FirebaseInit;
 import com.dtdt.DormManager.model.Building; // Import your new model
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
@@ -22,6 +21,7 @@ import java.util.HashMap;
 import com.dtdt.DormManager.service.RoomStore;
 import com.dtdt.DormManager.model.Room;
 import javafx.collections.ListChangeListener;
+import com.dtdt.DormManager.controller.config.FirebaseInit;
 
 public class BuildingsViewController {
     @FXML private VBox buildingsContainer;
@@ -92,7 +92,7 @@ public class BuildingsViewController {
         buildingsContainer.getChildren().clear(); // Clear old data
 
         // --- 1. Asynchronously get all buildings ---
-        ApiFuture<QuerySnapshot> future = FirebaseInit.db.collection("buildings").get();
+        ApiFuture<QuerySnapshot> future = com.dtdt.DormManager.controller.config.FirebaseInit.db.collection("buildings").get();
 
         // --- 2. Add a listener to run when data is retrieved ---
         future.addListener(() -> {
@@ -182,7 +182,7 @@ public class BuildingsViewController {
             // TODO: Add an "Are you sure?" confirmation dialog
 
             // Delete from Firebase
-            ApiFuture<WriteResult> deleteFuture = FirebaseInit.db.collection("buildings").document(documentId).delete();
+            ApiFuture<WriteResult> deleteFuture = com.dtdt.DormManager.controller.config.FirebaseInit.db.collection("buildings").document(documentId).delete();
 
             // Add listener to remove from UI *after* successful delete
             deleteFuture.addListener(() -> {

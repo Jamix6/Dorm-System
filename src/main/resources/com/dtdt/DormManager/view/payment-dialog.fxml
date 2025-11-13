@@ -21,13 +21,16 @@
     <Label text="Payment Method" GridPane.columnIndex="0" GridPane.rowIndex="2" />
     <Label fx:id="selectedMethodLabel" text="(method)" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
-    <Label text="Reference/Txn No." GridPane.columnIndex="0" GridPane.rowIndex="3" />
-    <TextField fx:id="referenceField" promptText="Transaction or reference number" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+    <Label text="Month to Pay For" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+    <Label fx:id="selectedMonthLabel" text="(month)" GridPane.columnIndex="1" GridPane.rowIndex="3" />
 
-    <Label text="Payer Name" GridPane.columnIndex="0" GridPane.rowIndex="4" />
-    <TextField fx:id="payerNameField" promptText="Name on payment" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+    <Label text="Reference/Txn No." GridPane.columnIndex="0" GridPane.rowIndex="4" />
+    <TextField fx:id="referenceField" promptText="Transaction or reference number" GridPane.columnIndex="1" GridPane.rowIndex="4" />
 
-    <HBox spacing="10" GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="2" style="-fx-alignment: center_right; -fx-padding: 10 0 0 0;">
+    <Label text="Payer Name" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+    <TextField fx:id="payerNameField" promptText="Name on payment" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+
+    <HBox spacing="10" GridPane.columnIndex="0" GridPane.rowIndex="6" GridPane.columnSpan="2" style="-fx-alignment: center_right; -fx-padding: 10 0 0 0;">
         <Button fx:id="cancelButton" text="Cancel" onAction="#onCancel" />
         <Button fx:id="submitButton" text="Submit Payment" style="-fx-background-color: #1A1A1A; -fx-text-fill: white;" onAction="#onSubmit" />
     </HBox>

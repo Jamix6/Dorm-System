@@ -1,6 +1,5 @@
 package com.dtdt.DormManager.controller.admin;
 
-import com.dtdt.DormManager.controller.config.FirebaseInit;
 import com.dtdt.DormManager.model.Building; // We need this to get a list of buildings
 import com.dtdt.DormManager.model.Room;
 import com.dtdt.DormManager.service.RoomStore;
@@ -25,6 +24,7 @@ import java.util.Comparator;
 import java.util.Objects;
 import java.util.Map;
 import java.util.HashMap;
+import com.dtdt.DormManager.controller.config.FirebaseInit;
 
 public class RoomsViewController {
     @FXML private FlowPane roomsContainer;
@@ -205,7 +205,7 @@ public class RoomsViewController {
     private void onAddRoomClick() {
         // --- 1. First, get a list of available buildings for the ComboBox ---
         ObservableList<Building> buildings = FXCollections.observableArrayList();
-        ApiFuture<QuerySnapshot> buildingsFuture = FirebaseInit.db.collection("buildings").get();
+        ApiFuture<QuerySnapshot> buildingsFuture = com.dtdt.DormManager.controller.config.FirebaseInit.db.collection("buildings").get();
         buildingsFuture.addListener(() -> {
             try {
                 for (QueryDocumentSnapshot doc : buildingsFuture.get().getDocuments()) {
@@ -278,7 +278,7 @@ public class RoomsViewController {
                 // --- 5. Save to Firebase ---
                 String newRoomId = UUID.randomUUID().toString();
                 newRoom.setId(newRoomId); // ensure the model has its id set locally
-                DocumentReference docRef = FirebaseInit.db.collection("rooms").document(newRoomId);
+                DocumentReference docRef = com.dtdt.DormManager.controller.config.FirebaseInit.db.collection("rooms").document(newRoomId);
                 docRef.set(newRoom);
 
                 // Add new card to UI immediately and local list
@@ -351,7 +351,7 @@ public class RoomsViewController {
             try {
                 Map<String, Object> updates = new HashMap<>();
                 updates.put("status", newStatus);
-                FirebaseInit.db.collection("rooms").document(room.getId()).update(updates);
+                com.dtdt.DormManager.controller.config.FirebaseInit.db.collection("rooms").document(room.getId()).update(updates);
                 // Update local model and RoomStore
                 room.setStatus(newStatus);
                 for (Room r : roomList) if (Objects.equals(r.getId(), room.getId())) r.setStatus(newStatus);
@@ -396,7 +396,7 @@ public class RoomsViewController {
                 updates.put("capacity", newCapacity);
 
                 // Update Firestore
-                FirebaseInit.db.collection("rooms").document(room.getId()).update(updates).addListener(() -> {
+                com.dtdt.DormManager.controller.config.FirebaseInit.db.collection("rooms").document(room.getId()).update(updates).addListener(() -> {
                     Platform.runLater(() -> {
                         // Update local model
                         room.setRoomType(newType);
@@ -433,7 +433,7 @@ public class RoomsViewController {
         deleteItem.setOnAction(e -> {
             // TODO: Add "Are you sure?" confirmation
 
-            ApiFuture<WriteResult> deleteFuture = FirebaseInit.db.collection("rooms").document(documentId).delete();
+            ApiFuture<WriteResult> deleteFuture = com.dtdt.DormManager.controller.config.FirebaseInit.db.collection("rooms").document(documentId).delete();
             deleteFuture.addListener(() -> {
                 Platform.runLater(() -> {
                     roomsContainer.getChildren().remove(cardToRemove);

@@ -1,7 +1,6 @@
 package com.dtdt.DormManager.controller;
 
 import com.dtdt.DormManager.Main;
-import com.dtdt.DormManager.controller.config.FirebaseInit;
 import com.dtdt.DormManager.model.Reservation;
 import com.google.cloud.firestore.Firestore;
 import javafx.collections.FXCollections;
@@ -12,6 +11,7 @@ import java.io.IOException;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.UUID;
+import com.dtdt.DormManager.controller.config.FirebaseInit;
 
 public class ReservationController {
 
