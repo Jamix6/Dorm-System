@@ -70,7 +70,7 @@ public class ResidentsViewController {
         });
 
         // --- THIS IS THE FIX for your old error ---
-        roomColumn.setCellValueFactory(new PropertyValueFactory<>("roomNumber"));
+        roomColumn.setCellValueFactory(new PropertyValueFactory<>("roomID"));
         contactColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
 
         statusColumn.setCellValueFactory(cellData -> {

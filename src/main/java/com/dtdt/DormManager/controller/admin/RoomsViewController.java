@@ -2,7 +2,7 @@ package com.dtdt.DormManager.controller.admin;
 
 import com.dtdt.DormManager.model.Building;
 import com.dtdt.DormManager.model.Room;
-import com.dtdt.DormManager.model.Tenant; // Import Tenant for occupancy tracking
+import com.dtdt.DormManager.model.Tenant;
 import com.dtdt.DormManager.service.RoomStore;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
@@ -35,20 +35,16 @@ public class RoomsViewController {
     @FXML private ComboBox<String> statusCombo;
     @FXML private Button addRoomBtn;
 
-    // Local cache of rooms and tenants
     private final ObservableList<Room> roomList = FXCollections.observableArrayList();
     private final ObservableList<Tenant> tenantList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
-        loadTenantsForOccupancy(); // Load tenants first
-        loadRooms(); // Then load rooms (which triggers render)
+        loadTenantsForOccupancy();
+        loadRooms();
         setupFilters();
     }
 
-    /**
-     * Fetches all tenants to calculate occupancy for each room.
-     */
     private void loadTenantsForOccupancy() {
         ApiFuture<QuerySnapshot> future = FirebaseInit.db.collection("users")
                 .whereEqualTo("userType", "Tenant")
@@ -61,7 +57,7 @@ public class RoomsViewController {
                 }
                 Platform.runLater(() -> {
                     tenantList.setAll(fetchedTenants);
-                    renderRooms(); // Re-render rooms to update occupancy counts
+                    renderRooms();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -70,7 +66,6 @@ public class RoomsViewController {
     }
 
     private void setupFilters() {
-        // When building changes, repopulate floor/type/status
         if (buildingCombo != null) {
             buildingCombo.setCellFactory(lv -> new ListCell<>() {
                 @Override protected void updateItem(Building item, boolean empty) {
@@ -84,7 +79,6 @@ public class RoomsViewController {
                     setText(empty || item == null ? null : item.getName());
                 }
             });
-
             buildingCombo.setOnAction(e -> populateDependentFiltersAndRender());
         }
 
@@ -96,13 +90,11 @@ public class RoomsViewController {
     private void populateDependentFiltersAndRender() {
         Building selected = buildingCombo == null ? null : buildingCombo.getValue();
 
-        // If "All Buildings" is selected (or nothing), clear dependent filters
         if (selected == null || selected.getId() == null) {
             if (floorCombo != null) floorCombo.getItems().clear();
             if (typeCombo != null) typeCombo.getItems().clear();
             if (statusCombo != null) statusCombo.getItems().clear();
 
-            // Add "All" options back
             if (floorCombo != null) floorCombo.getItems().add("All Floors");
             if (typeCombo != null) typeCombo.getItems().add("All Types");
             if (statusCombo != null) statusCombo.getItems().add("All Statuses");
@@ -111,7 +103,6 @@ public class RoomsViewController {
             return;
         }
 
-        // Gather unique floors/types/status for the selected building
         var floors = FXCollections.observableArrayList("All Floors");
         var types = FXCollections.observableArrayList("All Types");
         var statuses = FXCollections.observableArrayList("All Statuses");
@@ -155,7 +146,7 @@ public class RoomsViewController {
                     roomList.setAll(fetched);
                     RoomStore.getInstance().setRooms(fetched);
                     populateBuildings();
-                    renderRooms(); // Initial render
+                    renderRooms();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -166,14 +157,12 @@ public class RoomsViewController {
     private void populateBuildings() {
         if (buildingCombo == null) return;
 
-        // Add "All Buildings" option
         Building allBuildings = new Building();
-        allBuildings.setId(null); // Use null ID as identifier for "All"
+        allBuildings.setId(null);
         allBuildings.setName("All Buildings");
 
         var buildings = FXCollections.observableArrayList(allBuildings);
 
-        // Gather unique buildings from roomList
         for (Room r : roomList) {
             Building b = new Building();
             b.setId(r.getBuildingId());
@@ -183,14 +172,10 @@ public class RoomsViewController {
             if (!exists) buildings.add(b);
         }
         buildingCombo.setItems(buildings);
-        buildingCombo.getSelectionModel().select(allBuildings); // Select "All Buildings" by default
+        buildingCombo.getSelectionModel().select(allBuildings);
     }
 
-    /**
-     * Renders room cards from roomList, applying filters.
-     */
     private void renderRooms() {
-        // Filter rooms by selections
         Building selectedBuilding = buildingCombo == null ? null : buildingCombo.getValue();
         String selectedFloor = floorCombo == null ? null : floorCombo.getValue();
         String selectedType = typeCombo == null ? null : typeCombo.getValue();
@@ -198,7 +183,6 @@ public class RoomsViewController {
 
         List<Room> filtered = new ArrayList<>();
         for (Room r : roomList) {
-            // Apply filters
             if (selectedBuilding != null && selectedBuilding.getId() != null && !Objects.equals(r.getBuildingId(), selectedBuilding.getId())) continue;
             if (selectedFloor != null && !selectedFloor.equals("All Floors") && !String.valueOf(r.getFloor()).equals(selectedFloor)) continue;
             if (selectedType != null && !selectedType.equals("All Types") && !Objects.equals(r.getRoomType(), selectedType)) continue;
@@ -206,7 +190,6 @@ public class RoomsViewController {
             filtered.add(r);
         }
 
-        // Sort by room number
         filtered.sort(Comparator.comparing(r -> safeString(r.getRoomNumber())));
 
         Platform.runLater(() -> {
@@ -280,20 +263,38 @@ public class RoomsViewController {
                 Building selectedBuilding = buildingComboBox.getValue();
                 if (selectedBuilding == null) throw new Exception("Building must be selected.");
 
+                // --- THIS IS THE FIX ---
+                String roomNumber = roomNumberField.getText().trim();
+                if (roomNumber.isEmpty()) {
+                    showError("Invalid Input", "Room Number cannot be empty.");
+                    return;
+                }
+                // --- END FIX ---
+
                 Room newRoom = new Room();
                 newRoom.setBuildingId(selectedBuilding.getId());
                 newRoom.setBuildingName(selectedBuilding.getName());
-                newRoom.setRoomNumber(roomNumberField.getText());
+                newRoom.setRoomNumber(roomNumber); // Set the room number field
                 newRoom.setFloor(Integer.parseInt(floorField.getText()));
                 newRoom.setRoomType(typeField.getText());
                 newRoom.setRate(Double.parseDouble(rateField.getText()));
                 newRoom.setCapacity(Integer.parseInt(capacityField.getText()));
                 newRoom.setStatus("Available");
+                newRoom.setId(roomNumber); // Set the ID for the local object
 
-                String newRoomId = UUID.randomUUID().toString();
-                newRoom.setId(newRoomId);
-                DocumentReference docRef = FirebaseInit.db.collection("rooms").document(newRoomId);
+                // --- THIS IS THE FIX ---
+                // Use the roomNumber as the document ID
+                DocumentReference docRef = FirebaseInit.db.collection("rooms").document(roomNumber);
+
+                // Check if it already exists
+                if (docRef.get().get().exists()) {
+                    showError("Error", "A room with number '" + roomNumber + "' already exists.");
+                    return;
+                }
+
+                // Set the new room
                 docRef.set(newRoom);
+                // --- END FIX ---
 
                 roomList.add(newRoom);
                 RoomStore.getInstance().addRoom(newRoom);
@@ -302,22 +303,11 @@ public class RoomsViewController {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                // --- TODO FIX: Show an error alert ---
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setHeaderText("Failed to Add Room");
-                alert.setContentText("Please check your inputs and try again. " + e.getMessage());
-                alert.showAndWait();
-                // --- END FIX ---
+                showError("Failed to Add Room", "Please check your inputs and try again. " + e.getMessage());
             }
         }
     }
 
-    /**
-     * Gets the current occupancy count for a specific room.
-     * @param roomId The ID of the room to check.
-     * @return The number of tenants assigned to that room.
-     */
     private int getOccupancyForRoom(String roomId) {
         int count = 0;
         if (roomId == null) return 0;
@@ -334,7 +324,6 @@ public class RoomsViewController {
         card.setStyle("-fx-background-color: white; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 0); " +
                 "-fx-background-radius: 10; -fx-padding: 15; -fx-pref-width: 280;");
 
-        // Header with room number and status
         HBox header = new HBox();
         header.setAlignment(Pos.CENTER_LEFT);
         header.setSpacing(10);
@@ -384,13 +373,10 @@ public class RoomsViewController {
         editItem.setOnAction(e -> openEditRoomDialog(room));
         MenuItem deleteItem = createDeleteMenuItem(room.getId(), card);
 
-        // --- START FIX ---
-        // We check the status when the menu item is created to set the text
         boolean isCurrentlyOccupied = "Occupied".equalsIgnoreCase(room.getStatus());
         MenuItem statusToggle = new MenuItem(isCurrentlyOccupied ? "Mark as Available" : "Mark as Occupied");
 
         statusToggle.setOnAction(e -> {
-            // But here, we check the status *again* to be 100% sure
             boolean stillOccupied = "Occupied".equalsIgnoreCase(room.getStatus());
             String newStatus = stillOccupied ? "Available" : "Occupied";
 
@@ -399,20 +385,14 @@ public class RoomsViewController {
                 updates.put("status", newStatus);
                 FirebaseInit.db.collection("rooms").document(room.getId()).update(updates);
 
-                // Update local model
                 room.setStatus(newStatus);
-
-                // Update RoomStore using your pattern
                 RoomStore.getInstance().removeById(room.getId());
                 RoomStore.getInstance().addRoom(room);
-
-                // Re-render all cards to reflect the change
                 renderRooms();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
         });
-        // --- END FIX ---
 
         more.getItems().addAll(editItem, deleteItem, statusToggle);
 
@@ -421,10 +401,6 @@ public class RoomsViewController {
         return card;
     }
 
-    /**
-     * Opens a dialog to edit Room Type and Rate.
-     * Capacity is still auto-calculated from Room Type.
-     */
     private void openEditRoomDialog(Room room) {
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Edit Room");
@@ -459,16 +435,12 @@ public class RoomsViewController {
 
                 FirebaseInit.db.collection("rooms").document(room.getId()).update(updates).addListener(() -> {
                     Platform.runLater(() -> {
-                        // Update local model
                         room.setRoomType(newType);
                         room.setCapacity(newCapacity);
                         room.setRate(newRate);
 
-                        // --- THIS IS THE FIX ---
-                        // Use the correct remove/add pattern
                         RoomStore.getInstance().removeById(room.getId());
                         RoomStore.getInstance().addRoom(room);
-                        // --- END FIX ---
 
                         renderRooms();
                     });
@@ -479,7 +451,6 @@ public class RoomsViewController {
         }
     }
 
-    // Map the room type to capacity according to rules: Single=1, Shared(D)=2, Shared=4
     private int capacityForType(String type) {
         if (type == null) return 1;
         switch (type) {
@@ -494,7 +465,6 @@ public class RoomsViewController {
     private MenuItem createDeleteMenuItem(String documentId, Node cardToRemove) {
         MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setOnAction(e -> {
-            // --- TODO FIX: Add "Are you sure?" confirmation ---
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
             alert.setTitle("Confirm Deletion");
             alert.setHeaderText("Delete Room");
@@ -502,7 +472,6 @@ public class RoomsViewController {
 
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
-                // User clicked OK, proceed with delete
                 ApiFuture<WriteResult> deleteFuture = FirebaseInit.db.collection("rooms").document(documentId).delete();
                 deleteFuture.addListener(() -> {
                     Platform.runLater(() -> {
@@ -512,7 +481,6 @@ public class RoomsViewController {
                     });
                 }, Runnable::run);
             }
-            // --- END FIX ---
         });
         return deleteItem;
     }
@@ -523,5 +491,16 @@ public class RoomsViewController {
         Label valueNode = new Label(value);
         grid.add(labelNode, 0, row);
         grid.add(valueNode, 1, row);
+    }
+
+    // Helper to show errors
+    private void showError(String title, String content) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(content);
+            alert.showAndWait();
+        });
     }
 }
