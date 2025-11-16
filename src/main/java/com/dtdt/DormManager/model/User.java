@@ -1,22 +1,24 @@
 package com.dtdt.DormManager.model;
 
-// --- Imports for hashing ---
+// 1. ADD THIS IMPORT
+import com.google.cloud.firestore.annotation.DocumentId;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
-// --- End Imports ---
 
 public abstract class User {
 
+
+    @DocumentId
+    private String documentId;
+
     private String userId;
     private String email;
-    private String passwordHash; // <-- The field
-
+    private String passwordHash;
     private String fullName;
     private String firstName;
     private String lastName;
-
     private String userType;
     private String contractID;
     private String genderType;
@@ -31,7 +33,7 @@ public abstract class User {
         this.fullName = fullName;
     }
 
-    // --- HASHING METHOD ---
+
     public static String hashPassword(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -46,37 +48,29 @@ public abstract class User {
         }
     }
 
-    // --- Getters and Setters ---
+    public String getDocumentId() { return documentId; }
+    public void setDocumentId(String documentId) { this.documentId = documentId; }
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    // --- THIS IS THE MISSING METHOD ---
+    // ... (all your other getters/setters) ...
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-    // --- END ---
-
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
-
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
-
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
-
     public String getUserType() { return userType; }
     public void setUserType(String userType) { this.userType = userType; }
-
     public String getContractID() { return contractID; }
     public void setContractID(String contractID) { this.contractID = contractID; }
-
     public String getGenderType() { return genderType; }
     public void setGenderType(String genderType) { this.genderType = genderType; }
-
     public String getStudentID() { return studentID; }
     public void setStudentID(String studentID) { this.studentID = studentID; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 }
