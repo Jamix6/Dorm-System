@@ -19,6 +19,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
+import java.time.ZoneId;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -69,7 +70,7 @@ public class ResidentsViewController {
         });
 
         // --- THIS IS THE FIX for your old error ---
-        roomColumn.setCellValueFactory(new PropertyValueFactory<>("roomID"));
+        roomColumn.setCellValueFactory(new PropertyValueFactory<>("roomNumber"));
         contactColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
 
         statusColumn.setCellValueFactory(cellData -> {
@@ -154,6 +155,10 @@ public class ResidentsViewController {
      * Replaces handleViewDetails. This opens a dialog to assign a room
      * and create a contract.
      */
+    /**
+     * Replaces handleViewDetails. This opens a dialog to assign a room
+     * and create/update a contract.
+     */
     private void handleManageTenant(Tenant tenant) {
         System.out.println("Managing: " + tenant.getFullName());
 
@@ -177,7 +182,6 @@ public class ResidentsViewController {
         grid.add(new Label("Assign Room:"), 0, 1);
         ComboBox<Room> roomComboBox = new ComboBox<>(allRoomsList);
 
-        // This makes the ComboBox show the room number, not the object hash
         roomComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(Room room) {
@@ -187,7 +191,6 @@ public class ResidentsViewController {
             public Room fromString(String string) { return null; }
         });
 
-        // Find and select the tenant's current room, if they have one
         if (tenant.getRoomID() != null) {
             for (Room room : allRoomsList) {
                 if (room.getId().equals(tenant.getRoomID())) {
@@ -203,6 +206,20 @@ public class ResidentsViewController {
         Label contractStatusLabel = new Label(tenant.getContractID() != null ? "Active (ID: " + tenant.getContractID() + ")" : "Not Created");
         grid.add(contractStatusLabel, 1, 2);
 
+        // --- NEW: Contract End Date DatePicker ---
+        grid.add(new Label("Contract End Date:"), 0, 3);
+        DatePicker endDatePicker = new DatePicker();
+        endDatePicker.setPromptText("Select end date");
+
+        // If a contract already exists, show its end date
+        if (tenant.getContractID() != null) {
+            // (We'd need to fetch the contract to see the date, so for now we'll just disable it)
+            endDatePicker.setDisable(true);
+            endDatePicker.setPromptText("Contract already active");
+        }
+        grid.add(endDatePicker, 1, 3);
+        // --- END NEW ---
+
         pane.setContent(grid);
 
         // --- 3. Handle Dialog Submission ---
@@ -216,19 +233,28 @@ public class ResidentsViewController {
             }
 
             // --- 4. Update Tenant's Room in DB ---
-            db.collection("users").document(tenant.getDocumentId()).update("roomID", selectedRoom.getId());
-            tenant.setRoomID(selectedRoom.getId()); // Update local object
+            // Only update if the room is different
+            if (!Objects.equals(tenant.getRoomID(), selectedRoom.getId())) {
+                db.collection("users").document(tenant.getDocumentId()).update("roomID", selectedRoom.getId());
+                tenant.setRoomID(selectedRoom.getId()); // Update local object
+                System.out.println("Tenant room updated to: " + selectedRoom.getRoomNumber());
+            }
 
             // --- 5. Create Contract if one doesn't exist ---
             if (tenant.getContractID() == null) {
+
+                // --- VALIDATE DATEPICKER ---
+                if (endDatePicker.getValue() == null) {
+                    showError("No End Date", "You must select a contract end date.");
+                    return;
+                }
+
                 System.out.println("Creating new contract...");
                 String contractId = UUID.randomUUID().toString();
                 Date dateSigned = new Date(); // Today
 
-                // Set end date (e.g., end of November 2025)
-                Calendar cal = Calendar.getInstance();
-                cal.set(2025, Calendar.NOVEMBER, 30);
-                Date endDate = cal.getTime();
+                // Get the date from the DatePicker
+                Date endDate = Date.from(endDatePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant());
 
                 Contract newContract = new Contract();
                 newContract.setId(contractId);
@@ -238,7 +264,7 @@ public class ResidentsViewController {
                 newContract.setRentAmount(selectedRoom.getRate()); // Get rate from room
                 newContract.setDateSigned(dateSigned);
                 newContract.setStartDate(dateSigned);
-                newContract.setEndDate(endDate);
+                newContract.setEndDate(endDate); // Use selected end date
 
                 // Save new contract
                 db.collection("contracts").document(contractId).set(newContract);
