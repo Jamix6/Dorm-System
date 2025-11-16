@@ -104,8 +104,9 @@ public class LoginController {
             var userDoc = querySnapshot.getDocuments().get(0);
             String storedPasswordHash = userDoc.getString("passwordHash");
 
-            // Make sure you deleted the local hashPassword() method
             String inputPasswordHash = User.hashPassword(pwInput);
+            //System.out.println("Password Hash: " + inputPasswordHash);
+            //for debug check pass hash
 
             if (storedPasswordHash == null || !storedPasswordHash.equals(inputPasswordHash)) {
                 loginErrorLabel.setText("Invalid Credentials (password mismatch)");

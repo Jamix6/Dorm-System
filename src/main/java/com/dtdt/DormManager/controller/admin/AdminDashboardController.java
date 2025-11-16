@@ -26,13 +26,35 @@ public class AdminDashboardController {
     public void initData(Admin admin) {
         this.currentAdmin = admin;
         adminNameLabel.setText(admin.getFullName());
-        
-        // Load statistics view by default
-        onStatsClick();
+
+        // --- THIS IS THE NEW ROLE-BASED LOGIC ---
+
+        if ("Owner".equals(admin.getUserType())) {
+            // Owner can see Statistics
+            statsButton.setVisible(true);
+            statsButton.setManaged(true); // Make sure it takes up space
+
+            // Load statistics view by default for Owner
+            onStatsClick();
+
+        } else {
+            // Admin cannot see Statistics
+            statsButton.setVisible(false);
+            statsButton.setManaged(false); // Remove it from the layout
+
+            // Load the Reservations view by default for Admin
+            onReservationsClick();
+        }
+        // --- END OF NEW LOGIC ---
     }
 
     @FXML
     private void onStatsClick() {
+        // Add a check: if the current user isn't an owner, don't load
+        if (!"Owner".equals(currentAdmin.getUserType())) {
+            System.err.println("Access Denied: Only Owners can view stats.");
+            return;
+        }
         loadView("stats-view.fxml");
         setActiveButton(statsButton);
     }
@@ -96,14 +118,15 @@ public class AdminDashboardController {
 
     private void setActiveButton(Button activeButton) {
         // Reset all buttons
-    statsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
-    buildingsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
-    roomsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
-    residentsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
-    maintenanceButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
-    reservationsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
+        // This is safe even if statsButton is invisible
+        statsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
+        buildingsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
+        roomsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
+        residentsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
+        maintenanceButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
+        reservationsButton.setStyle("-fx-background-color: transparent; -fx-alignment: CENTER_LEFT;");
 
         // Set active button style
-    activeButton.setStyle("-fx-background-color: #F4F7FC; -fx-alignment: CENTER_LEFT; -fx-font-weight: bold;");
+        activeButton.setStyle("-fx-background-color: #F4F7FC; -fx-alignment: CENTER_LEFT; -fx-font-weight: bold;");
     }
 }

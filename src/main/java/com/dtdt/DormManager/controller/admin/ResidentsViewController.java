@@ -4,6 +4,7 @@ import com.dtdt.DormManager.controller.config.FirebaseInit;
 import com.dtdt.DormManager.model.Contract;
 import com.dtdt.DormManager.model.Room;
 import com.dtdt.DormManager.model.Tenant;
+import com.dtdt.DormManager.service.RoomStore;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -43,7 +44,8 @@ public class ResidentsViewController {
     @FXML private TableColumn<Tenant, Void> actionsColumn;
 
     // --- Data ---
-    private final ObservableList<Tenant> tenantList = FXCollections.observableArrayList();
+    private final ObservableList<Tenant> tenantList = FXCollections.observableArrayList(); // For the table
+    private final ObservableList<Tenant> allTenantsList = FXCollections.observableArrayList(); // Master list
     private final ObservableList<Room> allRoomsList = FXCollections.observableArrayList(); // Cache for rooms
     private final Firestore db = FirebaseInit.db;
 
@@ -69,7 +71,6 @@ public class ResidentsViewController {
             return new SimpleStringProperty(id);
         });
 
-        // --- THIS IS THE FIX for your old error ---
         roomColumn.setCellValueFactory(new PropertyValueFactory<>("roomID"));
         contactColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
 
@@ -84,41 +85,160 @@ public class ResidentsViewController {
         // 3. Set the table's data source
         residentsTable.setItems(tenantList);
 
-        // 4. Load all data from Firebase
-        loadAllRooms();
-        loadTenants();
+        // 4. Set up listeners for filters
+        setupFilterListeners();
+
+        // 5. Load all data from Firebase
+        loadAllData();
     }
 
-    private void loadAllRooms() {
+    /**
+     * Sets up listeners for all filter components.
+     */
+    private void setupFilterListeners() {
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> renderTenants());
+        buildingFilterBox.setOnAction(e -> renderTenants());
+        floorFilterBox.setOnAction(e -> renderTenants());
+        roomTypeFilterBox.setOnAction(e -> renderTenants());
+        // sortBox.setOnAction(e -> renderTenants()); // Add sorting logic later
+    }
+
+    /**
+     * Loads all rooms, then all tenants, then populates filters and renders the table.
+     */
+    private void loadAllData() {
         allRoomsList.clear();
-        ApiFuture<QuerySnapshot> future = db.collection("rooms").get();
-        future.addListener(() -> {
+        allTenantsList.clear();
+
+        // 1. Load Rooms first
+        ApiFuture<QuerySnapshot> roomsFuture = db.collection("rooms").get();
+        roomsFuture.addListener(() -> {
             try {
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-                for (QueryDocumentSnapshot document : documents) {
+                for (QueryDocumentSnapshot document : roomsFuture.get().getDocuments()) {
                     allRoomsList.add(document.toObject(Room.class));
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+
+                // 2. Now load Tenants
+                ApiFuture<QuerySnapshot> tenantsFuture = db.collection("users").whereEqualTo("userType", "Tenant").get();
+                tenantsFuture.addListener(() -> {
+                    try {
+                        for (QueryDocumentSnapshot document : tenantsFuture.get().getDocuments()) {
+                            allTenantsList.add(document.toObject(Tenant.class));
+                        }
+
+                        // 3. Now that all data is loaded, update the UI
+                        Platform.runLater(() -> {
+                            populateFilters();
+                            renderTenants();
+                        });
+
+                    } catch (Exception e) { e.printStackTrace(); }
+                }, Runnable::run);
+
+            } catch (Exception e) { e.printStackTrace(); }
         }, Runnable::run);
     }
 
-    private void loadTenants() {
-        tenantList.clear();
-        ApiFuture<QuerySnapshot> future = db.collection("users")
-                .whereEqualTo("userType", "Tenant")
-                .get();
-        future.addListener(() -> {
-            try {
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-                for (QueryDocumentSnapshot document : documents) {
-                    tenantList.add(document.toObject(Tenant.class));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    /**
+     * Populates the filter ComboBoxes with data from allRoomsList.
+     */
+    private void populateFilters() {
+        ObservableList<String> buildings = FXCollections.observableArrayList("All Buildings");
+        ObservableList<String> floors = FXCollections.observableArrayList("All Floors");
+        ObservableList<String> types = FXCollections.observableArrayList("All Types");
+
+        for (Room room : allRoomsList) {
+            if (room.getBuildingName() != null && !buildings.contains(room.getBuildingName())) {
+                buildings.add(room.getBuildingName());
             }
-        }, Platform::runLater);
+            String floorStr = String.valueOf(room.getFloor());
+            if (!floors.contains(floorStr)) {
+                floors.add(floorStr);
+            }
+            if (room.getRoomType() != null && !types.contains(room.getRoomType())) {
+                types.add(room.getRoomType());
+            }
+        }
+
+        buildingFilterBox.setItems(buildings);
+        floorFilterBox.setItems(floors);
+        roomTypeFilterBox.setItems(types);
+
+        buildingFilterBox.setValue("All Buildings");
+        floorFilterBox.setValue("All Floors");
+        roomTypeFilterBox.setValue("All Types");
+    }
+
+    /**
+     * Filters the 'allTenantsList' into the 'tenantList' based on filter selections.
+     */
+    private void renderTenants() {
+        String searchText = searchField.getText().toLowerCase().trim();
+        String selectedBuilding = buildingFilterBox.getValue();
+        String selectedFloor = floorFilterBox.getValue();
+        String selectedType = roomTypeFilterBox.getValue();
+
+        ObservableList<Tenant> filteredList = FXCollections.observableArrayList();
+
+        for (Tenant tenant : allTenantsList) {
+            // 1. Check Search Filter
+            boolean matchesSearch = true;
+            if (!searchText.isEmpty()) {
+                String fullName = (tenant.getFirstName() + " " + tenant.getLastName()).toLowerCase();
+                String userId = (tenant.getUserId() != null ? tenant.getUserId() : "").toLowerCase();
+                String email = (tenant.getEmail() != null ? tenant.getEmail() : "").toLowerCase();
+
+                matchesSearch = fullName.contains(searchText) ||
+                        userId.contains(searchText) ||
+                        email.contains(searchText);
+            }
+            if (!matchesSearch) continue; // Skip if no match
+
+            // 2. Check Room-Based Filters
+            Room tenantRoom = getRoomForTenant(tenant.getRoomID());
+
+            // Building Filter
+            if (selectedBuilding != null && !selectedBuilding.equals("All Buildings")) {
+                if (tenantRoom == null || !selectedBuilding.equals(tenantRoom.getBuildingName())) {
+                    continue; // Skip if no room or room doesn't match
+                }
+            }
+
+            // Floor Filter
+            if (selectedFloor != null && !selectedFloor.equals("All Floors")) {
+                if (tenantRoom == null || !selectedFloor.equals(String.valueOf(tenantRoom.getFloor()))) {
+                    continue;
+                }
+            }
+
+            // Type Filter
+            if (selectedType != null && !selectedType.equals("All Types")) {
+                if (tenantRoom == null || !selectedType.equals(tenantRoom.getRoomType())) {
+                    continue;
+                }
+            }
+
+            // If all checks pass, add the tenant
+            filteredList.add(tenant);
+        }
+
+        // (Sorting can be added here)
+
+        tenantList.setAll(filteredList);
+        residentsTable.refresh();
+    }
+
+    /**
+     * Helper method to find a Room object from the local list by its ID.
+     */
+    private Room getRoomForTenant(String roomId) {
+        if (roomId == null) return null;
+        for (Room room : allRoomsList) {
+            if (roomId.equals(room.getId())) {
+                return room;
+            }
+        }
+        return null; // No matching room found in cache
     }
 
     @FXML
@@ -153,10 +273,6 @@ public class ResidentsViewController {
 
     /**
      * Replaces handleViewDetails. This opens a dialog to assign a room
-     * and create a contract.
-     */
-    /**
-     * Replaces handleViewDetails. This opens a dialog to assign a room
      * and create/update a contract.
      */
     private void handleManageTenant(Tenant tenant) {
@@ -174,25 +290,45 @@ public class ResidentsViewController {
         grid.setVgap(10);
         grid.setPadding(new Insets(20, 150, 10, 10));
 
-        // Tenant Name
         grid.add(new Label("Tenant:"), 0, 0);
         grid.add(new Label(tenant.getFullName()), 1, 0);
 
-        // Room Assignment ComboBox
+        // --- FIX: Filter the list to only show AVAILABLE rooms ---
+        ObservableList<Room> availableRooms = FXCollections.observableArrayList();
+        for (Room room : allRoomsList) {
+            // Check if room is "Available" AND not full
+            int occupancy = getOccupancyForRoom(room.getId());
+            if ("Available".equalsIgnoreCase(room.getStatus()) && occupancy < room.getCapacity()) {
+                availableRooms.add(room);
+            }
+        }
+
+        // Add the tenant's current room to the list if they already have one
+        if (tenant.getRoomID() != null) {
+            Room currentRoom = getRoomForTenant(tenant.getRoomID()); // Use your existing helper
+            if (currentRoom != null && !availableRooms.contains(currentRoom)) {
+                availableRooms.add(currentRoom); // Add their current room
+            }
+        }
+
         grid.add(new Label("Assign Room:"), 0, 1);
-        ComboBox<Room> roomComboBox = new ComboBox<>(allRoomsList);
+        ComboBox<Room> roomComboBox = new ComboBox<>(availableRooms); // Use the filtered list
+        // --- END FIX ---
 
         roomComboBox.setConverter(new StringConverter<>() {
             @Override
             public String toString(Room room) {
-                return room == null ? "Select a room..." : room.getBuildingName() + " - Room " + room.getRoomNumber();
+                if (room == null) return "Select a room...";
+                int occupancy = getOccupancyForRoom(room.getId());
+                return String.format("%s - Room %s (%d/%d)",
+                        room.getBuildingName(), room.getRoomNumber(), occupancy, room.getCapacity());
             }
             @Override
             public Room fromString(String string) { return null; }
         });
 
         if (tenant.getRoomID() != null) {
-            for (Room room : allRoomsList) {
+            for (Room room : allRoomsList) { // Check all rooms, not just available
                 if (room.getId().equals(tenant.getRoomID())) {
                     roomComboBox.setValue(room);
                     break;
@@ -201,24 +337,20 @@ public class ResidentsViewController {
         }
         grid.add(roomComboBox, 1, 1);
 
-        // Contract Status
         grid.add(new Label("Contract:"), 0, 2);
         Label contractStatusLabel = new Label(tenant.getContractID() != null ? "Active (ID: " + tenant.getContractID() + ")" : "Not Created");
         grid.add(contractStatusLabel, 1, 2);
 
-        // --- NEW: Contract End Date DatePicker ---
         grid.add(new Label("Contract End Date:"), 0, 3);
         DatePicker endDatePicker = new DatePicker();
         endDatePicker.setPromptText("Select end date");
 
-        // If a contract already exists, show its end date
         if (tenant.getContractID() != null) {
-            // (We'd need to fetch the contract to see the date, so for now we'll just disable it)
             endDatePicker.setDisable(true);
             endDatePicker.setPromptText("Contract already active");
+            // (You can add the logic here to fetch and show the date)
         }
         grid.add(endDatePicker, 1, 3);
-        // --- END NEW ---
 
         pane.setContent(grid);
 
@@ -233,48 +365,40 @@ public class ResidentsViewController {
             }
 
             // --- 4. Update Tenant's Room in DB ---
-            // Only update if the room is different
             if (!Objects.equals(tenant.getRoomID(), selectedRoom.getId())) {
                 db.collection("users").document(tenant.getDocumentId()).update("roomID", selectedRoom.getId());
-                tenant.setRoomID(selectedRoom.getId()); // Update local object
+                tenant.setRoomID(selectedRoom.getId());
                 System.out.println("Tenant room updated to: " + selectedRoom.getRoomNumber());
             }
 
             // --- 5. Create Contract if one doesn't exist ---
             if (tenant.getContractID() == null) {
-
-                // --- VALIDATE DATEPICKER ---
+                // (All your contract creation logic...)
                 if (endDatePicker.getValue() == null) {
                     showError("No End Date", "You must select a contract end date.");
                     return;
                 }
-
-                System.out.println("Creating new contract...");
                 String contractId = UUID.randomUUID().toString();
-                Date dateSigned = new Date(); // Today
-
-                // Get the date from the DatePicker
+                Date dateSigned = new Date();
                 Date endDate = Date.from(endDatePicker.getValue().atStartOfDay(ZoneId.systemDefault()).toInstant());
-
                 Contract newContract = new Contract();
                 newContract.setId(contractId);
                 newContract.setTenantId(tenant.getUserId());
                 newContract.setRoomId(selectedRoom.getId());
                 newContract.setContractType("Semesterly");
-                newContract.setRentAmount(selectedRoom.getRate()); // Get rate from room
+                newContract.setRentAmount(selectedRoom.getRate());
                 newContract.setDateSigned(dateSigned);
                 newContract.setStartDate(dateSigned);
-                newContract.setEndDate(endDate); // Use selected end date
-
-                // Save new contract
+                newContract.setEndDate(endDate);
                 db.collection("contracts").document(contractId).set(newContract);
-
-                // Update user with new contract ID
                 db.collection("users").document(tenant.getDocumentId()).update("contractID", contractId);
-                tenant.setContractID(contractId); // Update local object
+                tenant.setContractID(contractId);
             }
 
-            // Refresh the table to show the new Room ID and "Active" status
+            // --- FIX: Check room status after assignment ---
+            updateRoomStatusAfterAssignment(selectedRoom);
+            // --- END FIX ---
+
             residentsTable.refresh();
         }
     }
@@ -289,9 +413,43 @@ public class ResidentsViewController {
         });
     }
 
-    // This method is now handled by handleManageTenant
     private void handleViewDetails(Tenant tenant) {
         System.out.println("Viewing details for: " + tenant.getFullName());
-        handleManageTenant(tenant); // Just call the main management dialog
+        handleManageTenant(tenant);
+    }
+
+    // Inside ResidentsViewController.java
+
+    /**
+     * Helper method to get the current occupancy of a room.
+     * @param roomId The ID of the room to check.
+     * @return The number of tenants currently assigned to that room.
+     */
+    private int getOccupancyForRoom(String roomId) {
+        if (roomId == null) return 0;
+        int count = 0;
+        for (Tenant tenant : allTenantsList) {
+            if (roomId.equals(tenant.getRoomID())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void updateRoomStatusAfterAssignment(Room room) {
+        // Get the new occupancy count
+        int currentOccupancy = getOccupancyForRoom(room.getId());
+
+        if (currentOccupancy >= room.getCapacity()) {
+            System.out.println("Room " + room.getRoomNumber() + " is now full. Setting status to Occupied.");
+
+            // Update in Firebase
+            db.collection("rooms").document(room.getId()).update("status", "Occupied");
+
+            // Update in our local lists
+            room.setStatus("Occupied");
+            RoomStore.getInstance().removeById(room.getId()); // Remove old version
+            RoomStore.getInstance().addRoom(room); // Add new version
+        }
     }
 }

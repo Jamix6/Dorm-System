@@ -87,35 +87,38 @@ public class RoomsViewController {
         if (statusCombo != null) statusCombo.setOnAction(e -> renderRooms());
     }
 
+    // Inside RoomsViewController.java
+
     private void populateDependentFiltersAndRender() {
         Building selected = buildingCombo == null ? null : buildingCombo.getValue();
-
-        if (selected == null || selected.getId() == null) {
-            if (floorCombo != null) floorCombo.getItems().clear();
-            if (typeCombo != null) typeCombo.getItems().clear();
-            if (statusCombo != null) statusCombo.getItems().clear();
-
-            if (floorCombo != null) floorCombo.getItems().add("All Floors");
-            if (typeCombo != null) typeCombo.getItems().add("All Types");
-            if (statusCombo != null) statusCombo.getItems().add("All Statuses");
-
-            renderRooms();
-            return;
-        }
 
         var floors = FXCollections.observableArrayList("All Floors");
         var types = FXCollections.observableArrayList("All Types");
         var statuses = FXCollections.observableArrayList("All Statuses");
 
-        for (Room r : roomList) {
-            if (selected.getId().equals(r.getBuildingId())) {
+        // --- THIS IS THE FIX ---
+        if (selected == null || selected.getId() == null) {
+            // "All Buildings" is selected. Scan ALL rooms.
+            for (Room r : roomList) {
                 String f = String.valueOf(r.getFloor());
                 if (!floors.contains(f)) floors.add(f);
                 if (r.getRoomType() != null && !types.contains(r.getRoomType())) types.add(r.getRoomType());
                 if (r.getStatus() != null && !statuses.contains(r.getStatus())) statuses.add(r.getStatus());
             }
+        } else {
+            // A specific building is selected. Scan only rooms in that building.
+            for (Room r : roomList) {
+                if (selected.getId().equals(r.getBuildingId())) {
+                    String f = String.valueOf(r.getFloor());
+                    if (!floors.contains(f)) floors.add(f);
+                    if (r.getRoomType() != null && !types.contains(r.getRoomType())) types.add(r.getRoomType());
+                    if (r.getStatus() != null && !statuses.contains(r.getStatus())) statuses.add(r.getStatus());
+                }
+            }
         }
+        // --- END FIX ---
 
+        // Now, set the items and re-select the "All" option
         if (floorCombo != null) {
             floorCombo.setItems(floors);
             floorCombo.getSelectionModel().select("All Floors");
@@ -243,16 +246,22 @@ public class RoomsViewController {
         roomNumberField.setPromptText("Room Number (e.g., 101)");
         TextField floorField = new TextField();
         floorField.setPromptText("Floor (e.g., 1)");
-        TextField typeField = new TextField();
-        typeField.setPromptText("Room Type (e.g., Double)");
+
+        // --- THIS IS THE FIX ---
+        // Replaced TextField with ComboBox
+        ComboBox<String> typeSelect = new ComboBox<>();
+        typeSelect.getItems().addAll("Single", "Shared(D)", "Shared");
+        typeSelect.setPromptText("Room Type");
+        // --- END FIX ---
+
         TextField rateField = new TextField();
         rateField.setPromptText("Rate per bed (e.g., 5000)");
-        TextField capacityField = new TextField();
-        capacityField.setPromptText("Capacity (e.g., 2)");
+
+        // Capacity field is no longer needed, as it's set by Room Type
 
         VBox content = new VBox(10,
                 new Label("Building:"), buildingComboBox,
-                new Label("Room Info:"), roomNumberField, floorField, typeField, rateField, capacityField
+                new Label("Room Info:"), roomNumberField, floorField, typeSelect, rateField
         );
         content.setStyle("-fx-padding: 10;");
         pane.setContent(content);
@@ -263,38 +272,41 @@ public class RoomsViewController {
                 Building selectedBuilding = buildingComboBox.getValue();
                 if (selectedBuilding == null) throw new Exception("Building must be selected.");
 
-                // --- THIS IS THE FIX ---
                 String roomNumber = roomNumberField.getText().trim();
                 if (roomNumber.isEmpty()) {
                     showError("Invalid Input", "Room Number cannot be empty.");
                     return;
                 }
+
+                // --- THIS IS THE FIX ---
+                String newType = typeSelect.getValue();
+                if (newType == null) {
+                    showError("Invalid Input", "Room Type must be selected.");
+                    return;
+                }
+                // Auto-calculate capacity
+                int newCapacity = capacityForType(newType);
                 // --- END FIX ---
 
                 Room newRoom = new Room();
                 newRoom.setBuildingId(selectedBuilding.getId());
                 newRoom.setBuildingName(selectedBuilding.getName());
-                newRoom.setRoomNumber(roomNumber); // Set the room number field
+                newRoom.setRoomNumber(roomNumber);
                 newRoom.setFloor(Integer.parseInt(floorField.getText()));
-                newRoom.setRoomType(typeField.getText());
+                newRoom.setRoomType(newType); // Use value from ComboBox
                 newRoom.setRate(Double.parseDouble(rateField.getText()));
-                newRoom.setCapacity(Integer.parseInt(capacityField.getText()));
+                newRoom.setCapacity(newCapacity); // Use auto-calculated capacity
                 newRoom.setStatus("Available");
-                newRoom.setId(roomNumber); // Set the ID for the local object
+                newRoom.setId(roomNumber);
 
-                // --- THIS IS THE FIX ---
-                // Use the roomNumber as the document ID
                 DocumentReference docRef = FirebaseInit.db.collection("rooms").document(roomNumber);
 
-                // Check if it already exists
                 if (docRef.get().get().exists()) {
                     showError("Error", "A room with number '" + roomNumber + "' already exists.");
                     return;
                 }
 
-                // Set the new room
                 docRef.set(newRoom);
-                // --- END FIX ---
 
                 roomList.add(newRoom);
                 RoomStore.getInstance().addRoom(newRoom);

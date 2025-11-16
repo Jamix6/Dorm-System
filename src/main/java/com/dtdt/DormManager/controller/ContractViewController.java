@@ -51,7 +51,6 @@ public class ContractViewController {
         tenantIdLabel.setText(currentTenant.getUserId());
         tenantEmailLabel.setText(currentTenant.getEmail());
 
-        // 2. Load and populate async data
         loadRoomInfo();
         loadContractInfo();
     }
@@ -149,7 +148,7 @@ public class ContractViewController {
         } else if (title.equals("Payment Registration")) {
             PaymentController controller = loader.getController();
             controller.initData(this.currentTenant);
-        } else if (title.equals("Profile")) { // <-- ADD THIS CASE
+        } else if (title.equals("Profile")) {
             TenantProfileController controller = loader.getController();
             controller.initData(this.currentTenant);
         }
