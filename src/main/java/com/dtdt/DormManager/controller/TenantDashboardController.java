@@ -163,7 +163,27 @@ public class TenantDashboardController {
 
     }
 
-    // === Private Helper Methods ===
+    @FXML
+    private void onProfileClick(ActionEvent event) throws IOException {
+        System.out.println("Profile link clicked.");
+
+        // 1. Load the profile-view.fxml file
+        FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/tenant-profile-view.fxml"));
+        Parent root = loader.load();
+
+        // 2. Get the controller of the new scene
+        TenantProfileController controller = loader.getController();
+
+        // 3. Pass the *current* tenant data to the new controller
+        controller.initData(this.currentTenant);
+
+        // 4. Get the current stage (window) and change the scene
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.getScene().setRoot(root);
+        stage.setTitle("Tenant Profile");
+    }
+
+
 
     private void loadAnnouncements() {
         // TODO: Fetch announcements from the database

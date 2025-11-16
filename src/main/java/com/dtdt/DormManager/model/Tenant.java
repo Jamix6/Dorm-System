@@ -2,15 +2,13 @@ package com.dtdt.DormManager.model;
 
 public class Tenant extends User {
 
-    // --- THIS IS THE FIX ---
-    private String currentYear; // Changed from int to String
-    // --- END FIX ---
+    private String currentYear;
 
-    private String assignedRoomID;
+    // This field is correct
+    private String roomID;
 
     public Tenant() {}
 
-    // Constructor updated for String
     public Tenant(String userId, String email, String passwordHash, String fullName, String currentYear) {
         super(userId, email, passwordHash, fullName);
         this.currentYear = currentYear;
@@ -21,6 +19,8 @@ public class Tenant extends User {
     public String getCurrentYear() { return currentYear; }
     public void setCurrentYear(String currentYear) { this.currentYear = currentYear; }
 
-    public String getAssignedRoomID() { return assignedRoomID; }
-    public void setAssignedRoomID(String assignedRoomID) { this.assignedRoomID = assignedRoomID; }
+    // --- THESE METHODS ARE NOW FIXED ---
+    public String getRoomID() { return roomID; }
+    public void setRoomID(String roomID) { this.roomID = roomID; }
+    // --- END FIX ---
 }

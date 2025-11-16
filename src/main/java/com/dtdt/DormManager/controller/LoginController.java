@@ -57,33 +57,13 @@ public class LoginController {
         }
     }
 
-    /**
-     * Hashes a password using SHA-256.
-     */
-    private String hashPassword(String password) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(password.getBytes());
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            System.err.println("Error hashing password: " + e.getMessage());
-            return null;
-        }
-    }
-
     @FXML
     protected void onSignInClick(ActionEvent event) throws IOException {
         System.out.println("Sign In button clicked.");
 
         String idInput = studentIdField.getText() == null ? "" : studentIdField.getText().trim();
         String emailInput = emailFieldLogin.getText() == null ? "" : emailFieldLogin.getText().trim();
-        String pwInput = passwordFieldLogin.getText() == null ? "" : passwordFieldLogin.getText();
+        String pwInput = passwordFieldLogin.getText() == null ? "" : passwordFieldLogin.getText().trim();
 
         Firestore db = FirebaseInit.db;
         if (db == null) {
@@ -92,76 +72,93 @@ public class LoginController {
             return;
         }
 
-        // Check for admin login first
-        // TODO: Move this to Firebase as well
-        if ((idInput.equalsIgnoreCase("admin") || emailInput.equalsIgnoreCase("admin@dorm.local"))
-                && pwInput.equals("adminpass")) {
-            User user = new Admin("admin", "admin@dorm.local", "adminpass", "System Admin", "Manager");
-
-            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/admin/admin-dashboard.fxml"));
-            Parent root = loader.load();
-
-            AdminDashboardController controller = loader.getController();
-            controller.initData((Admin) user);
-
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.getScene().setRoot(root);
-            stage.setTitle("Admin Dashboard");
-
-            // Resize window for admin dashboard
-            stage.sizeToScene();
-            stage.centerOnScreen();
-
-            loginErrorLabel.setVisible(false);
-            return;
-        }
-
-        // Authenticate tenant with Firebase
         try {
-            // Query for user by student ID
-            var query = db.collection("users")
-                    .whereEqualTo("userId", idInput) // Query for "userId"
-                    .get()
-                    .get();
+            com.google.cloud.firestore.QuerySnapshot querySnapshot;
 
-            if (query.getDocuments().isEmpty()) {
-                // No user found
-                loginErrorLabel.setText("Invalid Credentials");
+            // --- THIS IS THE NEW, SMARTER LOGIC ---
+
+            // 1. Try to find user by Student ID first
+            if (!idInput.isEmpty()) {
+                querySnapshot = db.collection("users").whereEqualTo("userId", idInput).get().get();
+            } else {
+                // If ID is empty, create an empty snapshot
+                querySnapshot = null;
+            }
+
+            // 2. If no user was found with the ID, AND the email field is not empty, try email
+            if ((querySnapshot == null || querySnapshot.getDocuments().isEmpty()) && !emailInput.isEmpty()) {
+                System.out.println("No user found with ID. Trying email...");
+                querySnapshot = db.collection("users").whereEqualTo("email", emailInput).get().get();
+            }
+
+            // --- END NEW LOGIC ---
+
+            // 3. If we still have no user, then fail
+            if (querySnapshot == null || querySnapshot.getDocuments().isEmpty()) {
+                loginErrorLabel.setText("Invalid Credentials (user not found)");
                 loginErrorLabel.setVisible(true);
                 return;
             }
 
-            var userDoc = query.getDocuments().get(0);
-            Tenant tenant = userDoc.toObject(Tenant.class); // Convert directly to Tenant
+            // 4. Get the user document and verify password
+            var userDoc = querySnapshot.getDocuments().get(0);
+            String storedPasswordHash = userDoc.getString("passwordHash");
 
-            // Verify password
-            String storedPasswordHash = tenant.getPasswordHash();
-            String inputPasswordHash = hashPassword(pwInput);
+            // Make sure you deleted the local hashPassword() method
+            String inputPasswordHash = User.hashPassword(pwInput);
 
             if (storedPasswordHash == null || !storedPasswordHash.equals(inputPasswordHash)) {
-                // Password doesn't match
-                loginErrorLabel.setText("Invalid Credentials");
+                loginErrorLabel.setText("Invalid Credentials (password mismatch)");
                 loginErrorLabel.setVisible(true);
                 return;
             }
 
-            // Authentication successful - Navigate to tenant dashboard
-            FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/tenant-dashboard.fxml"));
-            Parent root = loader.load();
-
-            TenantDashboardController controller = loader.getController();
-            controller.initData(tenant); // Pass the Tenant object
-
+            // 5. Authentication successful! Check user's role.
+            String userType = userDoc.getString("userType");
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.getScene().setRoot(root);
-            stage.setTitle("Tenant Dashboard");
-
             loginErrorLabel.setVisible(false);
 
+            // 6. Route user based on their role
+            if ("Admin".equals(userType) || "Owner".equals(userType)) {
+                // --- LOAD ADMIN DASHBOARD ---
+                Admin admin = userDoc.toObject(Admin.class);
+
+                FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/admin/admin-dashboard.fxml"));
+                Parent root = loader.load();
+
+                AdminDashboardController controller = loader.getController();
+                controller.initData(admin);
+
+                stage.getScene().setRoot(root);
+                stage.setTitle("Admin Dashboard");
+                stage.sizeToScene();
+                stage.centerOnScreen();
+
+            } else if ("Tenant".equals(userType)) {
+                // --- LOAD TENANT DASHBOARD ---
+                Tenant tenant = userDoc.toObject(Tenant.class);
+
+                FXMLLoader loader = new FXMLLoader(Main.class.getResource("/com/dtdt/DormManager/view/tenant-dashboard.fxml"));
+                Parent root = loader.load();
+
+                TenantDashboardController controller = loader.getController();
+                controller.initData(tenant);
+
+                stage.getScene().setRoot(root);
+                stage.setTitle("Tenant Dashboard");
+
+            } else {
+                loginErrorLabel.setText("User account is not configured correctly.");
+                loginErrorLabel.setVisible(true);
+            }
+
         } catch (Exception e) {
-            System.err.println("Error during authentication: " + e.getMessage());
+            System.err.println("--- LOGIN FAILED ---");
+            System.err.println("Error type: " + e.getClass().getName());
+            System.err.println("Error message: " + e.getMessage());
             e.printStackTrace();
-            loginErrorLabel.setText("Invalid Credentials");
+
+            loginErrorLabel.setText("Login failed: " + e.getMessage());
             loginErrorLabel.setVisible(true);
         }
     }
