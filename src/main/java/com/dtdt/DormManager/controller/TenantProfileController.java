@@ -43,7 +43,7 @@ public class TenantProfileController {
         studentIdField.setText(tenant.getUserId());
         
         // TODO: Load and display building/room data
-        buildingField.setText(tenant.getAssignedRoomID() != null ? tenant.getAssignedRoomID() : "Not Assigned");
+        buildingField.setText(tenant.getRoomID() != null ? tenant.getRoomID() : "Not Assigned");
         roomField.setText("N/A"); // You'll need to fetch this from the Room object
     }
 
