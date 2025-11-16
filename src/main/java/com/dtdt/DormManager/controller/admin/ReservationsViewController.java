@@ -128,14 +128,9 @@ public class ReservationsViewController {
         String plainTextPassword = generateRandomPassword(8);
         String hashedPassword = User.hashPassword(plainTextPassword);
         String fullName = reservation.getFirstName() + " " + reservation.getLastName();
-
-        // --- THIS IS THE FIX ---
-        // We are now saving fields that match your Java model
         java.util.Map<String, Object> newTenant = new java.util.HashMap<>();
-
-        // Use the field names from your User.java and Tenant.java
         newTenant.put("userId", reservation.getStudentId()); // Uses "userId"
-        newTenant.put("assignedRoomID", null);
+        newTenant.put("roomID", null);
         newTenant.put("currentYear", reservation.getCurrentYear()); // Saves "1st Year" as a String
 
         newTenant.put("email", reservation.getEmail());
@@ -146,9 +141,6 @@ public class ReservationsViewController {
         newTenant.put("genderType", reservation.getGender());
         newTenant.put("userType", "Tenant");
         newTenant.put("contractID", null);
-        // --- END FIX ---
-
-        // Save using the studentID as the document key
         ApiFuture<WriteResult> userFuture = db.collection("users")
                 .document(reservation.getStudentId())
                 .set(newTenant);
